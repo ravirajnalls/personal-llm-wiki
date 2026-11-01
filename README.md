@@ -64,6 +64,24 @@ Finds every video whose title, labels or transcript covers the topic, keeps the 
 `--kind concept`, `--kind all`, ...), and groups them by playlist in timeline order with the organizations,
 summary and the timestamped moments where the topic comes up. `--page` saves it as a wiki page.
 
+### Categories: broad themes across every playlist
+
+`categories:` in wiki.yaml maps broad themes (Observability, Security, Networking, Storage, Autoscaling,
+CI/CD & GitOps, Platform engineering, AI & ML, Cost, Reliability, Edge, ...) to keywords and project names:
+
+```yaml
+categories:
+  Observability: [observability, opentelemetry, prometheus, grafana, jaeger, tracing, logging, loki, thanos]
+```
+
+A video is in a category when a keyword is in its title, its Claude topics or summary, or its transcript keeps
+returning to it (`category_settings.min_mentions` chunks and `min_share` of the talk). So a "Scaling Prometheus
+at Shopify" case study and an "OpenTelemetry deep dive" both land in Observability, from whichever event they
+were at. Each category gets `wiki/categories/<name>.md`: talks per year, the organizations with case studies,
+then every talk grouped by event, case studies first. Categories also show on playlist and video pages,
+`wiki find observability` uses them, and `wiki categories` prints counts. Edit the keywords any time; pages
+are rebuilt on the next run without relabeling.
+
 ### Indexes it builds
 
 - full-text search over every transcript in ~45-second timestamped chunks (`wiki search`, `--playlist ID`);
@@ -170,6 +188,7 @@ collections:
 | `wiki classify [--heuristic] [--all] [--limit N]` | label videos: kind, organizations, topics, summary |
 | `wiki find TOPIC [--kind K] [--min-mentions N] [--page]` | every case study (or other kind) on a topic, by event |
 | `wiki sources` | the playlists on the timeline, with counts |
+| `wiki categories [--build]` | talks and case studies per category |
 | `wiki auto` | sync + classify + rebuild + commit + push, unattended (what the schedule runs) |
 | `wiki schedule [--time HH:MM] [--remove]` | install or remove the daily task (Task Scheduler / cron) |
 | `wiki research TOPIC... [-c COLL] [--url U] [--file F] [--web \| --no-search] [--notes N] [--push]` | research and write or update pages, then commit |

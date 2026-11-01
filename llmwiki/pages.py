@@ -51,7 +51,9 @@ def rebuild_index() -> list[str]:
 
     written = []
     lines = [f"# {cfg['title']}", "", cfg.get("description", ""), ""]
-    names = list(cfg["collections"]) + sorted(set(by_coll) - set(cfg["collections"]))
+    lead = ["categories", "topics"]  # generated cross-playlist views first
+    names = lead + [n for n in cfg["collections"] if n not in lead] + \
+        sorted(set(by_coll) - set(cfg["collections"]) - set(lead))
     for name in names:
         pages = sorted(by_coll.get(name, []), key=lambda i: i["title"].lower())
         desc = (cfg["collections"].get(name) or {}).get("description", "")

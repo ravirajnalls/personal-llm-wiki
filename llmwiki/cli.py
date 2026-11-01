@@ -4,6 +4,7 @@
   wiki classify [--heuristic]          label videos: case study, concept, ...; orgs and topics
   wiki find "topic" [--kind K] [--page] every case study (or talk) on a topic, across playlists, by date
   wiki sources                         the playlists on the timeline, with counts
+  wiki categories [--build]            talks per category (Observability, Security, ...)
   wiki auto                            sync + classify + rebuild + commit + push, unattended
   wiki schedule [--time HH:MM]         run `wiki auto` daily (Task Scheduler / cron); --remove to stop
   wiki research "topic" [-c collection] [--url URL ...] [--file PATH ...] [--web | --no-search] [--push]
@@ -98,6 +99,17 @@ def cmd_find(a):
         path = find.write_page(" ".join(a.topic), groups, kinds)
         pages.rebuild_index()
         print(f"Wrote wiki/{path}")
+
+
+def cmd_categories(a):
+    from llmwiki import catalog, categories, pages
+    if a.build:
+        catalog.build()
+        pages.rebuild_index()
+    m = categories.membership()
+    cs = {v["id"] for v in __import__("llmwiki.db", fromlist=["x"]).videos("kind = 'case_study'")}
+    for name, members in sorted(m.items(), key=lambda x: -len(x[1])):
+        print(f"{name:<28} {len(members):>5} talks  {len(cs & set(members)):>4} case studies")
 
 
 def cmd_sources(a):
@@ -222,6 +234,10 @@ def main(argv=None):
     h.add_argument("--time", help="HH:MM, 24h (default: schedule.time in wiki.yaml, else 02:00)")
     h.add_argument("--remove", action="store_true", help="remove the scheduled task")
     h.set_defaults(fn=cmd_schedule)
+
+    g = sub.add_parser("categories", help="talk counts per category (from wiki.yaml)")
+    g.add_argument("--build", action="store_true", help="also rebuild the category pages")
+    g.set_defaults(fn=cmd_categories)
 
     o = sub.add_parser("sources", help="playlists on the timeline, with counts")
     o.set_defaults(fn=cmd_sources)

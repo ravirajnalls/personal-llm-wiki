@@ -31,6 +31,9 @@ def _contains_all(hay: str, words: list[str]) -> bool:
 def find(topic: str, kinds: list[str] | None = ("case_study",), min_mentions: int = 2,
          playlist: str | None = None, moments: int = 3) -> list[dict]:
     """Matches grouped by playlist, in timeline order: [{playlist, year, month, videos: [...]}]."""
+    from llmwiki import categories
+    category = categories.find_category(topic)
+    in_category = set(categories.membership().get(category, [])) if category else set()
     words = _words(topic)
     if not words:
         return []
@@ -54,9 +57,10 @@ def find(topic: str, kinds: list[str] | None = ("case_study",), min_mentions: in
             in_title = _contains_all(v["title"] or "", words)
             in_labels = _contains_all(labels, words)
             vh = hits.get(v["id"], [])
-            if not (in_title or in_labels or len(vh) >= min_mentions):
+            in_cat = v["id"] in in_category
+            if not (in_title or in_labels or in_cat or len(vh) >= min_mentions):
                 continue
-            score = 10 * in_title + 8 * in_labels + min(len(vh), 15)
+            score = 10 * in_title + 8 * in_labels + 6 * in_cat + min(len(vh), 15)
             g = groups.setdefault(p["id"], {"playlist": p["title"], "playlist_id": p["id"], "year": p["year"],
                                             "month": p["month"], "videos": []})
             g["videos"].append({

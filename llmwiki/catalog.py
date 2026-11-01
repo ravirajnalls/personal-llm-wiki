@@ -54,6 +54,8 @@ def build() -> None:
         _playlist_page(p, transcripts)
     _write(SOURCES_DIR / "index.md", "\n".join(top) + "\n")
     _case_studies_page(pls)
+    from llmwiki import categories
+    categories.build_pages()
     if transcripts:
         for v in db.videos("status = 'ok'"):
             _video_page(v)
@@ -63,7 +65,8 @@ def _playlist_page(p, transcripts: bool):
     lines = [f"# {p['title']}", "", f"{_when(p)} · {p['n_videos']} videos · {p['n_ok'] or 0} transcripts · "
              f"{p['n_case_studies'] or 0} case studies · "
              f"[on YouTube](https://www.youtube.com/playlist?list={p['id']})", "",
-             "| # | Talk | Kind | Organizations | Length |", "| --- | --- | --- | --- | --- |"]
+             "| # | Talk | Kind | Organizations | Categories | Length |", "| --- | --- | --- | --- | --- | --- |"]
+    from llmwiki import categories
     for v in db.playlist_items(p["id"]):
         t = _cell(v["title"] or v["id"])
         link = f"[{t}](videos/{v['id']}.md)" if transcripts and v["status"] == "ok" else \
@@ -72,7 +75,9 @@ def _playlist_page(p, transcripts: bool):
             link += " *(no transcript)*"
         orgs = ", ".join(json.loads(v["orgs"] or "[]"))
         dur = cite.mmss(v["duration"]) if v["duration"] else ""
-        lines.append(f"| {v['position']} | {link} | {KIND_LABEL.get(v['kind'], v['kind'])} | {_cell(orgs)} | {dur} |")
+        cats = ", ".join(categories.of_video(v["id"]))
+        lines.append(f"| {v['position']} | {link} | {KIND_LABEL.get(v['kind'], v['kind'])} | {_cell(orgs)} | "
+                     f"{_cell(cats)} | {dur} |")
     _write(SOURCES_DIR / f"{p['id']}.md", "\n".join(lines) + "\n")
 
 
@@ -113,6 +118,10 @@ def _video_page(v):
         out += ["Playlists: " + ", ".join(f"[{p['title']}](../{p['id']}.md)" for p in pls), ""]
     if v["summary"]:
         out += [f"> {v['summary']}", ""]
+    from llmwiki import categories
+    cats = categories.of_video(v["id"])
+    if cats:
+        out += ["Categories: " + ", ".join(f"[{c}](../../categories/{config.slugify(c)}.md)" for c in cats), ""]
     if topics:
         out += ["Topics: " + ", ".join(f"`{t}`" for t in topics), ""]
     out += ["## Transcript", ""]

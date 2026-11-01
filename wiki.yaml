@@ -70,6 +70,39 @@ channel:
   videos:
     exclude: [Keynote, Opening Remarks, Closing Remarks]
 
+# Categories: broad themes that cut across every playlist. A video belongs to a category when a keyword
+# appears in its title, its Claude topics or summary, or at least `min_mentions` times in its transcript.
+# Each category gets a page (wiki/categories/<name>.md) with every talk on it, grouped by event over time.
+# Add, rename or extend freely; pages are rebuilt on every run, no relabeling needed.
+category_settings:
+  min_mentions: 6     # transcript chunks mentioning a keyword...
+  min_share: 0.2      # ...and at least this share of the video's chunks
+categories:
+  Observability: [observability, opentelemetry, otel, prometheus, grafana, jaeger, tracing, distributed tracing,
+                  metrics, logging, logs, fluentd, fluent bit, loki, thanos, cortex, mimir, tempo, ebpf observability,
+                  monitoring, alerting, slo, profiling, pixie]
+  Security: [security, supply chain, sbom, sigstore, cosign, falco, opa, gatekeeper, kyverno, policy, rbac, spiffe,
+             spire, zero trust, vulnerability, cve, secrets, vault, compliance, runtime security, admission control]
+  Networking: [networking, cni, cilium, calico, service mesh, istio, linkerd, envoy, gateway api, ingress, dns,
+               coredns, load balancing, network policy, ebpf, multi-cluster networking]
+  Storage & data: [storage, csi, rook, ceph, persistent volume, stateful, database, postgres, etcd, vitess, tikv,
+                   backup, velero, data on kubernetes]
+  Autoscaling & performance: [autoscaling, autoscaler, hpa, vpa, keda, karpenter, cluster autoscaler, scaling,
+                              performance, capacity planning, scheduling, scheduler]
+  CI/CD & GitOps: [gitops, argo, argocd, argo cd, flux, ci/cd, continuous delivery, continuous deployment, tekton,
+                   jenkins, helm, kustomize, progressive delivery, canary]
+  Platform engineering: [platform engineering, internal developer platform, backstage, developer experience,
+                         crossplane, self-service, golden path, multi-tenancy, multi-tenant]
+  AI & ML: [machine learning, ml, ai, llm, gpu, kubeflow, inference, training, model serving, kserve, ray, mlops,
+            ai agents, generative ai]
+  Serverless & runtimes: [serverless, knative, faas, webassembly, wasm, containerd, cri-o,
+                          kata containers, gvisor, firecracker]
+  Cost & efficiency: [cost, finops, cost optimization, efficiency, spot instances, resource management, rightsizing,
+                      sustainability]
+  Reliability & operations: [reliability, sre, incident, outage, postmortem, chaos engineering, litmus, chaos mesh,
+                             upgrade, day 2, disaster recovery, high availability]
+  Edge & IoT: [edge, iot, kubeedge, k3s, akri, telco, 5g]
+
 # Unattended updates: `wiki schedule` installs a daily task that runs `wiki auto`
 # (sync new videos -> classify -> rebuild pages -> commit -> push). Or double-click update-wiki.cmd.
 schedule:
