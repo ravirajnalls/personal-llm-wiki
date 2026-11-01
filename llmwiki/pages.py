@@ -7,7 +7,7 @@ import yaml
 from llmwiki import config
 from llmwiki.config import WIKI_DIR
 
-SKIP_DIRS = {"files", "assets", "stylesheets"}
+SKIP_DIRS = {"files", "sources", "assets", "stylesheets"}
 
 
 def split_frontmatter(text: str) -> tuple[dict, str]:
@@ -66,6 +66,8 @@ def rebuild_index() -> list[str]:
         coll_file = WIKI_DIR / name / "index.md"
         coll_file.write_text("\n".join(coll_lines).rstrip() + "\n", encoding="utf-8")
         written.append(coll_file.relative_to(WIKI_DIR).as_posix())
+    if (WIKI_DIR / "sources" / "index.md").exists():
+        lines += ["## [Sources](sources/index.md)", "", "Every synced playlist and video transcript.", ""]
     if not by_coll:
         lines += ["Nothing here yet. Run `wiki research \"a topic\"` to add the first page.", ""]
     (WIKI_DIR / "index.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")

@@ -33,6 +33,9 @@ def build_prompt(topic: str, coll_name: str, coll: dict, slug: str, urls: list[s
     sections = "\n".join(f"     ## {s}" for s in coll.get("sections") or ["Summary", "Key ideas"])
     given = "\n".join(f"     - {u}" for u in urls + files) or "     (none)"
 
+    feeds = [f["name"] for f in (db.feeds() if config.DB_PATH.exists() else []) if f["collection"] == coll_name]
+    feed_hint = (f"   Synced sources for this collection: {', '.join(feeds)} (catalog: wiki/sources/index.md).\n"
+                 f"   Narrow a search to one with: wiki search \"KEYWORDS\" --feed NAME\n") if feeds else ""
     discover = (f"""2. DISCOVER. Use WebSearch to find up to {max_sources} strong sources on the topic, mixing kinds:
    primary docs or papers, in-depth articles, and recorded talks or interviews on YouTube.
    - Prefer these domains: {prefer}. Never cite: {avoid}.
@@ -41,7 +44,11 @@ def build_prompt(topic: str, coll_name: str, coll: dict, slug: str, urls: list[s
    - Skip SEO listicles, content farms and pages that only rehash other pages.
    - The user's own sources below come first and must be used."""
                 if web_search else
-                "2. DISCOVER. Web search is OFF for this run: use ONLY the user's sources below and what is already in memory.")
+                f"""2. DISCOVER. Web search is OFF: build the page ONLY from the synced sources in memory and the user's sources below.
+   Search memory from several angles (synonyms, product names, people) to find every relevant video:
+     wiki search "KEYWORDS" --limit 20
+{feed_hint}   Read the transcript pages in wiki/sources/<source>/<video id>.md for context around a hit.
+   Use up to {max_sources * 2} videos if they add something; drop ones that only repeat others.""")
 
     return f"""You are the research agent for a personal wiki ("{cfg['title']}"). Working directory: {ROOT}
 Today is {date.today():%Y-%m-%d}.
@@ -113,14 +120,18 @@ def git_commit(message: str, push: bool) -> str:
 
 
 def research(topic: str, collection: str | None = None, urls: list[str] | None = None,
-             files: list[str] | None = None, web_search: bool = True, slug: str | None = None,
+             files: list[str] | None = None, web_search: bool | None = None, slug: str | None = None,
              notes: str = "", commit: bool = True, push: bool = False, model: str | None = None) -> dict:
     coll_name, coll = config.collection(collection)
+    if web_search is None:
+        rc = config.load().get("research", {})
+        web_search = rc.get("web_search", not config.load().get("sources"))
     slug = slug or config.slugify(topic)
     (WIKI_DIR / coll_name).mkdir(parents=True, exist_ok=True)
     prompt = build_prompt(topic, coll_name, coll, slug, urls or [], files or [], web_search, notes)
     timeout = config.load().get("research", {}).get("timeout_minutes", 20)
-    result = claude.run(prompt, claude.RESEARCH_TOOLS, timeout_min=timeout, model=model)
+    tools = claude.RESEARCH_TOOLS if web_search else [t for t in claude.RESEARCH_TOOLS if t != "WebSearch"]
+    result = claude.run(prompt, tools, timeout_min=timeout, model=model)
 
     page = f"{coll_name}/{slug}.md"
     if (WIKI_DIR / page).exists():

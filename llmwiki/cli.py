@@ -1,6 +1,8 @@
 """wiki: research topics into a cited personal wiki.
 
-  wiki research "topic" [-c collection] [--url URL ...] [--file PATH ...] [--no-search] [--push]
+  wiki sync [NAME ...] [--retry]       fetch every transcript from the playlists in wiki.yaml
+  wiki sources                         sync status of each source
+  wiki research "topic" [-c collection] [--url URL ...] [--file PATH ...] [--web | --no-search] [--push]
   wiki ask "question"                  answer from your wiki, with citations
   wiki ingest URL_OR_PATH ...          add a source to memory without writing a page
   wiki search "keywords" [--source ID] find passages in ingested sources, with ready-to-paste citations
@@ -24,7 +26,8 @@ def cmd_research(a):
     from llmwiki.research import research
     for topic in a.topics:
         print(f"Researching: {topic}", flush=True)
-        r = research(topic, a.collection, a.url, a.file, web_search=not a.no_search, slug=a.slug,
+        web = True if a.web else (False if a.no_search else None)
+        r = research(topic, a.collection, a.url, a.file, web_search=web, slug=a.slug,
                      notes=a.notes or "", commit=not a.no_commit, push=a.push, model=a.model)
         print(f"  {r.get('status')}: {r.get('page', '')}")
         for k in ("sources_ingested", "citations", "git", "notes", "reason"):
@@ -49,7 +52,7 @@ def cmd_ingest(a):
 
 def cmd_search(a):
     from llmwiki import cite, db
-    rows = db.search(" ".join(a.query), a.limit, a.source)
+    rows = db.search(" ".join(a.query), a.limit, a.source, a.feed)
     if not rows:
         print("No matches. Try fewer or different words, or ingest more sources.")
     for r in rows:
@@ -57,6 +60,30 @@ def cmd_search(a):
         print(f"--- {r['title'] or r['source_id']}  [{r['source_id']} {loc}]")
         print("  " + " ".join(r["snippet"].split()))
         print(f"  cite: {cite.for_chunk(r)}")
+
+
+def cmd_sync(a):
+    from llmwiki import pages, sync
+    results = sync.sync(a.names or None, retry=a.retry, delay=a.delay)
+    pages.rebuild_index()
+    for name, c in results.items():
+        if "failed" in c:
+            print(f"{name}: FAILED {c['failed']}")
+        else:
+            print(f"{name}: {c['ok']} new, {c['already']} already in memory, "
+                  f"{c['no_transcript']} without transcript, {c['error']} errors")
+
+
+def cmd_sources(a):
+    from llmwiki import db, sync
+    srcs = sync.configured_sources()
+    known = {f["name"]: f for f in db.feeds()} if config.DB_PATH.exists() else {}
+    for s in srcs:
+        f = known.get(s["name"])
+        state = f"{f['n_ok'] or 0}/{f['n_videos']} transcripts, synced {f['synced_at']}" if f else "never synced"
+        print(f"{s['name']:<28} {s['type']:<17} {s['collection']:<10} {state}")
+    if not srcs:
+        print("No sources in wiki.yaml yet.")
 
 
 def cmd_check(a):
@@ -119,13 +146,23 @@ def main(argv=None):
     r.add_argument("-c", "--collection")
     r.add_argument("--url", action="append", default=[], help="a source you want used (repeatable)")
     r.add_argument("--file", action="append", default=[], help="a local file to use as a source (repeatable)")
-    r.add_argument("--no-search", action="store_true", help="only use --url/--file sources and memory")
+    r.add_argument("--web", action="store_true", help="also search the web (default when wiki.yaml has no sources)")
+    r.add_argument("--no-search", action="store_true", help="only use synced sources, --url/--file and memory")
     r.add_argument("--slug", help="page file name (default: from the topic)")
     r.add_argument("--notes", help="extra guidance, e.g. 'focus on cost'")
     r.add_argument("--no-commit", action="store_true")
     r.add_argument("--push", action="store_true", help="git push after committing")
     r.add_argument("--model")
     r.set_defaults(fn=cmd_research)
+
+    y = sub.add_parser("sync", help="fetch transcripts for the sources in wiki.yaml")
+    y.add_argument("names", nargs="*", help="source names (default: all)")
+    y.add_argument("--retry", action="store_true", help="retry videos that failed or had no transcript")
+    y.add_argument("--delay", type=float, default=1.0, help="seconds between videos (default 1)")
+    y.set_defaults(fn=cmd_sync)
+
+    o = sub.add_parser("sources", help="sync status of each source")
+    o.set_defaults(fn=cmd_sources)
 
     q = sub.add_parser("ask", help="answer a question from the wiki")
     q.add_argument("question", nargs="+")
@@ -140,6 +177,7 @@ def main(argv=None):
     s = sub.add_parser("search", help="full-text search ingested sources")
     s.add_argument("query", nargs="+")
     s.add_argument("--source", help="limit to one source id (video id, URL or files/name)")
+    s.add_argument("--feed", help="limit to the videos of one synced source (its name in wiki.yaml)")
     s.add_argument("--limit", type=int, default=8)
     s.set_defaults(fn=cmd_search)
 

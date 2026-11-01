@@ -49,31 +49,40 @@ def _split_text(text: str, size: int = CHUNK_CHARS) -> list[str]:
     return chunks
 
 
-def ingest_video(url: str, force: bool = False) -> dict:
-    vid = youtube_id(url)
-    if not vid:
-        return {"error": f"not a YouTube URL: {url}"}
-    if db.has_source(vid) and not force:
-        return {"id": vid, "status": "already_ingested"}
+def fetch_transcript(vid: str, languages: list[str] | None = None) -> list[tuple[int, str]]:
+    """The whole caption track as ~45-second (start_seconds, text) chunks. Raises if there are no captions."""
     from youtube_transcript_api import YouTubeTranscriptApi
-    try:
-        fetched = YouTubeTranscriptApi().fetch(vid, languages=["en", "en-US", "en-GB"])
-    except Exception as e:  # disabled captions, network, rate limit
-        return {"id": vid, "error": f"{type(e).__name__}: {e}"[:300]}
-
+    fetched = YouTubeTranscriptApi().fetch(vid, languages=languages or ["en", "en-US", "en-GB"])
     chunks, text, start = [], "", 0.0
     for snip in fetched:
         if not text:
             start = snip.start
         text += " " + snip.text.replace("\n", " ")
         if snip.start + snip.duration - start >= CHUNK_SECONDS:
-            chunks.append((int(start), text.strip()))
+            chunks.append((int(start), " ".join(text.split())))
             text = ""
     if text:
-        chunks.append((int(start), text.strip()))
+        chunks.append((int(start), " ".join(text.split())))
+    return chunks
 
-    title, author = _youtube_meta(vid)
-    db.add_source(vid, "video", f"https://www.youtube.com/watch?v={vid}", title, author, "", chunks)
+
+def ingest_video(url: str, force: bool = False, meta: dict | None = None,
+                 languages: list[str] | None = None) -> dict:
+    vid = youtube_id(url) or (url if re.fullmatch(r"[\w-]{11}", url) else None)
+    if not vid:
+        return {"error": f"not a YouTube URL: {url}"}
+    if db.has_source(vid) and not force:
+        return {"id": vid, "status": "already_ingested"}
+    try:
+        chunks = fetch_transcript(vid, languages)
+    except Exception as e:  # disabled captions, network, rate limit
+        return {"id": vid, "error": f"{type(e).__name__}: {e}"[:300]}
+    meta = meta or {}
+    title, author = meta.get("title", ""), meta.get("author", "")
+    if not title:
+        title, author = _youtube_meta(vid)
+    db.add_source(vid, "video", f"https://www.youtube.com/watch?v={vid}", title, author,
+                  meta.get("published", ""), chunks)
     return {"id": vid, "status": "ingested", "kind": "video", "title": title, "author": author,
             "chunks": len(chunks)}
 

@@ -4,22 +4,51 @@ A personal research wiki on any topic, written by Claude Code, where every claim
 spot in its source: the second of a video, the passage of a web page, the page of a PDF.
 
 ```bash
+wiki sync                                   # pull every transcript from the playlists in wiki.yaml
 wiki research "Cilium network policy" -c tech
 wiki research "Sourdough hydration" --url https://www.youtube.com/watch?v=... --notes "I bake at high altitude"
 wiki research "Attention is all you need" -c papers --file ~/Downloads/1706.03762.pdf
 wiki ask "Which CNI should I use for a small home lab?"
 ```
 
-It runs on your machine, whenever you want. No search API key and no payment step: discovery uses Claude
-Code's built-in web search, and everything else is plain Python and SQLite.
+It runs on your machine, whenever you want. You choose the sources: list the YouTube playlists you trust in
+`wiki.yaml`, and pages are built only from those (turn on Claude Code's built-in web search per run with `--web`).
+No API keys and no payment step; everything else is plain Python and SQLite.
+
+## Sources: YouTube playlists in `wiki.yaml`
+
+```yaml
+sources:
+  - name: kubecon-eu-2025
+    url: https://www.youtube.com/playlist?list=PL...
+    collection: tech
+    exclude: [Keynote, Closing Remarks]   # drop videos whose title has these words
+  - name: lex-fridman-ai
+    url: https://www.youtube.com/@lexfridman
+    type: youtube_channel
+    include: [AI, GPT, robot]             # keep only videos whose title has one of these
+    collection: general
+```
+
+`wiki sync` lists every video in each source (with yt-dlp, no API key), fetches each one's **full transcript**
+into `memory.db`, and builds the indexes:
+
+- a full-text search index over every transcript, in ~45-second timestamped chunks (`wiki search`, `--feed NAME`
+  to stay inside one playlist);
+- `wiki/sources/index.md`, one catalog page per playlist (title, channel, date, length, transcript status), and
+  one page per video with its whole transcript, every paragraph linked to its moment on YouTube.
+
+Sync is incremental: run it again and only new videos are fetched. Videos without captions are marked and
+skipped; `wiki sync --retry` tries them and any errors again. `wiki sources` shows the status of each one.
 
 ## How a research run works
 
 1. **Read memory.** The agent reads `wiki/index.md`, the existing page if there is one, and searches what it
    has already ingested, so a topic grows instead of being rewritten.
-2. **Discover.** Claude Code's WebSearch finds sources, guided by the collection's preferred domains and
-   YouTube channels in `wiki.yaml`. Your own `--url`/`--file` sources always come first; `--no-search` uses
-   only those.
+2. **Discover.** By default, from your synced sources only: the agent searches every transcript from several
+   angles and reads the transcript pages around each hit. With `--web` (or `research.web_search: true`), Claude
+   Code's WebSearch also finds sources, guided by the collection's preferred domains. Your own `--url`/`--file`
+   sources always come first.
 3. **Ingest.** `wiki ingest` stores each source's text in `memory.db` (SQLite full-text search): YouTube
    captions with timestamps, web page text, PDF text by page. A source is never ingested twice.
 4. **Cite exact spots.** `wiki search` prints a ready-to-paste citation for every passage it finds.
@@ -71,10 +100,12 @@ collections:
 
 | Command | Does |
 | --- | --- |
-| `wiki research TOPIC... [-c COLL] [--url U] [--file F] [--no-search] [--notes N] [--push]` | research and write or update pages, then commit |
+| `wiki sync [NAME...] [--retry] [--delay S]` | fetch full transcripts for the sources in wiki.yaml and rebuild the source catalog |
+| `wiki sources` | each source's sync status |
+| `wiki research TOPIC... [-c COLL] [--url U] [--file F] [--web \| --no-search] [--notes N] [--push]` | research and write or update pages, then commit |
 | `wiki ask QUESTION` | answer from your wiki, keeping its citations |
 | `wiki ingest URL_OR_PATH...` | add sources to memory without writing a page |
-| `wiki search WORDS [--source ID]` | find passages in ingested sources, with citations |
+| `wiki search WORDS [--source ID] [--feed NAME]` | find passages in ingested sources, with citations |
 | `wiki check [--fix]` | rebuild References and indexes, verify citations |
 | `wiki list` | pages, sources and recent runs |
 | `wiki serve` | preview the site |
@@ -94,7 +125,8 @@ citations). Set `LLMWIKI_ROOT` if the server starts outside your wiki folder.
 The wiki is plain markdown in git. Keep the repo private and use `wiki serve` locally, or publish it with
 GitHub Pages: enable *Settings → Pages → Source: GitHub Actions* and `.github/workflows/pages.yml` builds
 the site on every push. `memory.db` stays out of git (it can hold full copies of pages you read); delete
-the workflow file if you never want to publish.
+the workflow file if you never want to publish. If the site is public, consider `research.transcript_pages: false`
+so full transcripts aren't republished; search still works from `memory.db`.
 
 ## Origin
 
