@@ -1,0 +1,76 @@
+# KubeCon + CloudNativeCon China 2025 (Hong Kong)
+
+2025 · 70 videos · 0 transcripts · 2 case studies · [on YouTube](https://www.youtube.com/playlist?list=PLj6h78yzYM2P1xtALqTcCmRAa6142uERl)
+
+| # | Talk | Kind | Organizations | Length |
+| --- | --- | --- | --- | --- |
+| 1 | [AI Model Distribution Challenges and Best... Wenbo Qi, Xiaoya Xia & Peng Tao, Wenpeng Li & Han Jiang](https://www.youtube.com/watch?v=G1uH_RP3r54) | concept |  | 32:50 |
+| 2 | [Defining a Specification for AI/ML Artifacts - Fog Dong, Peng Tao, Chlins Zhang & Xudong Wang](https://www.youtube.com/watch?v=dYVgmr7S-rE) | concept |  | 27:15 |
+| 3 | [Fast and Furious: Practice in Horizon Robotics on Large-scale End-to-e... Chen Yangxue,  & Zhihao Xu](https://www.youtube.com/watch?v=fESU-jZHpjg) | concept |  | 29:50 |
+| 4 | [More Than Model Sharding: LWS & Distributed Inference - Peter Pan, Nicole Li & Shane Wang](https://www.youtube.com/watch?v=Yzk30z_exIs) | concept |  | 36:19 |
+| 5 | [Smart GPU Management: Dynamic Pooling, Sharing, and Scheduling for AI Work... Wei Chen & Mengxuan Li](https://www.youtube.com/watch?v=VQJBxquobQc) | concept |  | 32:20 |
+| 6 | [Introducing AIBrix: Cost-Effective and Scalable Kubernetes Control Plan... Jiaxin Shan & Liguang Xie](https://www.youtube.com/watch?v=QAhx8kdzvEI) | concept |  | 33:17 |
+| 7 | [Portrait Service: AI-Driven PB-Scale Data Mining for Cost Optimization and... Yuji Liu & Zhiheng Sun](https://www.youtube.com/watch?v=yczf87w0JDk) | concept |  | 29:55 |
+| 8 | [An Alternative Metadata System for Large Kubernetes Clusters - Yingcai Xue & Yixiang Chen, ByteDance](https://www.youtube.com/watch?v=MGOa8Nn8_S0) | concept |  | 28:39 |
+| 9 | [From Bottleneck To Breakthrough: Conquering Applications Star... Hexi Guo, Rentian Zhou & Zhuoqi Liu](https://www.youtube.com/watch?v=aCjEOWTABWI) | case study |  | 31:23 |
+| 10 | [Building Ultra-Large-Scale Cloud Native Edge Systems Using Chaos Engineering - Yue Bao & Yue Li](https://www.youtube.com/watch?v=_51bffwxEQM) | concept |  | 22:34 |
+| 11 | [Unlocking Kyverno: Mastering Policy Management in Large-Scale Kubernetes Clusters - Di Xu & Xu Liu](https://www.youtube.com/watch?v=_KQijmHBk6E) | concept |  | 28:36 |
+| 12 | [Revolutionizing Sidecarless Service Mesh With eBPF - Zhonghu Xu & Muyang Tian, Huawei](https://www.youtube.com/watch?v=kZuewTKKcQY) | concept |  | 26:48 |
+| 13 | [Guardians of the Gateway: Keeping Chaos Out of Your Cloud Highway - Sayan Mondal & Jintao Zhang](https://www.youtube.com/watch?v=6V-2xKUCV7A) | concept |  | 18:56 |
+| 14 | [Unlocking the Power of CEL for Advanced Multi-Cluster Scheduling - Qing Hao & Jian Qiu, Red Hat](https://www.youtube.com/watch?v=xNWHOJPiAqk) | concept |  | 23:11 |
+| 15 | [Project Lightning Talks: Opening - Hoon Jo & Satyam Soni, CNCF Ambassadors](https://www.youtube.com/watch?v=n2-mQ39RHf4) | concept |  | 2:43 |
+| 16 | [Project Lightning Talk: openGemini: Project Introduction and Updates - Yu Xiang, Maintainer](https://www.youtube.com/watch?v=JGoxRoNhtAw) | concept |  | 6:43 |
+| 17 | [Project Lightning Talk: Fluid Data Anyway, Data Anywhere, Data Anytime - Tongyu Guo, Maintainer](https://www.youtube.com/watch?v=MlIcDRadcA0) | concept |  | 5:05 |
+| 18 | [Project Lightning Talk: K8s issue #52757: Sharing GPUs Among Multiple Containers - Xiao Zhang](https://www.youtube.com/watch?v=8b7FynnPYLk) | concept |  | 5:43 |
+| 19 | [Project Lightning Talk: Practical Extension of eBPF Usability in KubeCon - Lizhencheng, Maintainer](https://www.youtube.com/watch?v=c9AQ2kVTcuc) | concept |  | 5:16 |
+| 20 | [Project Lightning Talk: Simplifying Multi-Cluster Integrations with OCM Addon - Jian Zhu, Maintainer](https://www.youtube.com/watch?v=APCNu0PgBBs) | concept |  | 5:41 |
+| 21 | [Project Lightning Talk: KubeEdge Updates and Use Cases in Multiple Scenarios - Yue Bao, Maintainer](https://www.youtube.com/watch?v=NkrsyM4Wxs0) | concept |  | 6:49 |
+| 22 | [Project Lightning Talk: Meshery: Kubernetes without Yaml, Is It Possible? - Yash Sharma, Maintainer](https://www.youtube.com/watch?v=dIQHNKNlBjs) | concept |  | 5:19 |
+| 23 | [Project Lightning Talk: Kyverno Lightning Update: CEL & Policy Types in Action - Shuting Zhao](https://www.youtube.com/watch?v=YTR1JYhv3sQ) | concept |  | 6:23 |
+| 24 | [Project Lightning Talk: What's New in WasmEdge 0.15.0? - Michael Yuan, Maintainer](https://www.youtube.com/watch?v=6OTwwscCUNQ) | concept |  | 6:23 |
+| 25 | [Project Lightning Talks: Closing - Cortney Nickerson, CNCF Ambassador](https://www.youtube.com/watch?v=jF1xZvwt2wQ) | concept |  | 0:40 |
+| 26 | [Antipatterns in Observability: Lessons Learned and How OpenTelemetry Solves Them - Steve Flanders](https://www.youtube.com/watch?v=2xX3Fx_WVSo) | concept |  | 32:25 |
+| 27 | [Advancing Observability With Compile-Time Auto-Instrumentation in G... Liu Ziming & Przemek Delewski](https://www.youtube.com/watch?v=xEsVOhBdlZY) | concept |  | 30:35 |
+| 28 | [Lightning Talk: Achieving Unstoppable Stability: Deploying OceanBase Across Multiple Ku... Peng Wang](https://www.youtube.com/watch?v=eXzFEBVNPcI) | concept |  | 6:35 |
+| 29 | [Lightning Talk: Advanced GPU-Orchestrated Workflows and HPC Integrations on K8s for...  Brandon Kang](https://www.youtube.com/watch?v=IygXbDZovWg) | concept |  | 9:06 |
+| 30 | [Lightning Talk: AI-Powered Kubernetes Diagnostics With K8sGPT - Kay Yan, DaoCloud](https://www.youtube.com/watch?v=8vkHj2Zift8) | concept |  | 6:06 |
+| 31 | [Lightning Talk: Best Practices for Upgrading Service Mesh Seamlessly - Hang Yin & Zhencheng Lee](https://www.youtube.com/watch?v=iqL0AEw2b_c) | concept |  | 5:50 |
+| 32 | [Lightning Talk: Deep Dive Into Kernel Requirements: Strengthening Cloud Native With Ne... Qifeng Guo](https://www.youtube.com/watch?v=iafIOeORGDI) | concept |  | 7:48 |
+| 33 | [Lightning Talk: Disaster Recovery - How IaCaC and Kubernetes Enables Cost Efficiency... Sandy Wang](https://www.youtube.com/watch?v=uhRoA_WcPsg) | concept |  | 6:07 |
+| 34 | [Lightning Talk: Empowering Sustainable Living With ORES: A Cloud N... Chris Xie & Karl Xiofeng Yang](https://www.youtube.com/watch?v=66KIPxH-9zY) | concept |  | 5:38 |
+| 35 | [Lightning Talk: Dynamic GPU Fraction and Sharing With Cloud Native Principle - Tiejun Chen](https://www.youtube.com/watch?v=F9xYvrfpsC8) | concept |  | 4:27 |
+| 36 | [Lightning Talk: Supercharge Agentic AI Apps: A DevEx-Driven Approach To Cloud Native S...  Daniel Oh](https://www.youtube.com/watch?v=Et1-ODgPlE8) | concept |  | 5:40 |
+| 37 | [Lightning Talk: Kubernetes Isekai (異世界）：Transforming Kubernetes Educati... Cyrus Wong & Hongyi Qian=](https://www.youtube.com/watch?v=Iew3tq1iDss) | concept |  | 4:24 |
+| 38 | [Lightning Talk: Stateful Service Federation in Large-Scale Search, Ads, and R... Yang Song & Vec Sun](https://www.youtube.com/watch?v=JV_G34Jwr7M) | concept |  | 4:53 |
+| 39 | [Lightning Talk: Mastering Prefill-Decode-Disaggregated Architecture: Solutions... Jing Gu & Yang Che](https://www.youtube.com/watch?v=HixWvA94odY) | concept |  | 5:29 |
+| 40 | [Lightning Talk: Kata Confidential Containers Meet Persistent Stora... Andy Zhang & Archana Choudhary](https://www.youtube.com/watch?v=5QEVlyEQ5m8) | concept |  | 5:58 |
+| 41 | [Lightning Talk: WASM Vs Docker: Partners, Not Rivals - Pradumna V Saraf, Independent](https://www.youtube.com/watch?v=DHaVho5cf4U) | concept |  | 5:47 |
+| 42 | [Lightning Talk: Scaling AI With Wasm and Edge Computing - Miley Fu, WasmEdge](https://www.youtube.com/watch?v=6K4wY5DZCeY) | concept |  | 10:10 |
+| 43 | [Argo Workflows: Intro, Update and Deep Dive - Shuangkun Tian & Yashi Su, Alibaba Cloud](https://www.youtube.com/watch?v=Wl5i2XZwREk) | concept |  | 35:52 |
+| 44 | [Kubernetes New Contributor Orientation - Paco Xu, DaoCloud; ZhenYu Jiang & Mengjiao Liu, Independent](https://www.youtube.com/watch?v=5UABmfrYu9s) | concept |  | 35:36 |
+| 45 | [Multi-cluster Orchestration System: Karmada Updates and Use Cases - Hongcai Ren, Huawei](https://www.youtube.com/watch?v=BU2XT2DpI2Q) | concept |  | 25:08 |
+| 46 | [New Pattern for Sailing Multi-host LLM Inference - Kante Yin, DaoCloud](https://www.youtube.com/watch?v=Jou7j-X_VJA) | concept |  | 23:11 |
+| 47 | [Simplifying the Networking and Security Stack With Cilium, Hubble, and Tet... Liyi Huang & Kaixi Fan](https://www.youtube.com/watch?v=cKPW67D7X10) | concept |  | 28:04 |
+| 48 | [OpenTelemetry Project Update - Zihao Rao, Hui Wang & Jared Tan](https://www.youtube.com/watch?v=W9ynhEWKmdA) | concept |  | 31:46 |
+| 49 | [Resilient Multiregion Global Control Planes With Crossplane and K8gb - Yury Tsarev & Steven Borrelli](https://www.youtube.com/watch?v=L9mRWljLnzw) | concept |  | 32:31 |
+| 50 | [Kube Intelligence - A Metric Based Insightful Remediation Recommender - Yash Bhatnagar, Google](https://www.youtube.com/watch?v=Ef1DisgzlwE) | concept |  | 24:34 |
+| 51 | [Progressive Delivery Made Easy With Argo Rollouts - Kevin Dubois, Red Hat](https://www.youtube.com/watch?v=C34TJFDsq-s) | concept |  | 30:26 |
+| 52 | [The Past, the Present, and the Future of Platform Eng... Mauricio "Salaboy" Salatino & Viktor Farcic](https://www.youtube.com/watch?v=lkbn9pgAtaw) | concept |  | 32:17 |
+| 53 | [Composable Platforms: Modular Platform Engineering With Kratix and Backstage - Hossein Salahi](https://www.youtube.com/watch?v=Cvib3yHxMik) | concept |  | 33:48 |
+| 54 | [Taming Dependency Chaos for LLM in K8s - Peter Pan, Neko Ayaka & Kebe Liu, DaoCloud](https://www.youtube.com/watch?v=26CaKlujVyI) | concept |  | 30:13 |
+| 55 | [How Bloomberg Creates a Resilient Data Analytics Platform Using... Michas Szacillo & Ilan Filonenko](https://www.youtube.com/watch?v=oQMJj5Mf7QA) | concept |  | 36:33 |
+| 56 | [Solidigm CSAL Solution Brings Advanced IO Shaping, Caching and Da... Wayne Gao, Solidigm & Long Chen](https://www.youtube.com/watch?v=JB0mpdU58XI) | concept |  | 15:46 |
+| 57 | [Exploring KubeEdge Graduation: Build a Di... Yue Bao, Fei Xu, Hongbing Zhang, Huan Wei & Benamin Huo](https://www.youtube.com/watch?v=9F-PRHBlH40) | concept |  | 34:13 |
+| 58 | [Stability in Large Model Training: Practices in Software and Hardware Fault Self-Healing - Yang Cao](https://www.youtube.com/watch?v=Jdbvo5NSZ9U) | concept |  | 23:04 |
+| 59 | [High-Performance Cloud Native Traffic Authentication Solutions - Muyang Tian & Zengzeng Yao, Huawei](https://www.youtube.com/watch?v=D9zumj3ffk4) | concept |  | 20:56 |
+| 60 | [Unified Observability in GRPC: Metrics and Tracing Using OpenTelemetry Plugin - Purnesh Dixit](https://www.youtube.com/watch?v=_Fr10UoFI7Y) | concept |  | 32:20 |
+| 61 | [China Mobile's Panji Platform: Observability Practices and Implementations... Jing Shang & Casey Li](https://www.youtube.com/watch?v=zN1j4EpVwjY) | concept |  | 33:10 |
+| 62 | [Connecting Dots: Unified Hybrid Multi-Cluster Auth Experience With SPIFFE and... Chen Yu & Jian Zhu](https://www.youtube.com/watch?v=J7UjDccpQCA) | concept |  | 31:05 |
+| 63 | [Guardians of Multi-Tenancy: Enhanced Authorization To Prevent Lateral Node... Dahu Kuang & Cheng Gao](https://www.youtube.com/watch?v=J9tge_ygyhU) | concept |  | 36:42 |
+| 64 | [Policy as Code: Past, Present and Future for Novice - Hoon Jo, Megazone](https://www.youtube.com/watch?v=6_Dh6xhqoys) | concept |  | 25:48 |
+| 65 | [Destroy Your System To Make It More Reliable: An Easy Way To Start Chaos Engineering... Sayan Mondal](https://www.youtube.com/watch?v=HRZ79SmUbv0) | concept |  | 25:03 |
+| 66 | [KubeEdge DeepDive: Architecture, Use Cases, and Project Graduation Updat... Yue Bao & Hongbing Zhang](https://www.youtube.com/watch?v=fwLzZsYOAeo) | concept |  | 27:54 |
+| 67 | [The Next Steps for Ingress-NGINX and the Ingate Project - Jintao Zhang, Kong Inc.](https://www.youtube.com/watch?v=ZjXCSLpMHwo) | concept |  | 35:10 |
+| 68 | [Building Custom GPU Clusters at Scale: Using Kubespray To Create High-Perfor... Kay Yan & Rong Zhang](https://www.youtube.com/watch?v=xj56NvrvN5A) | case study |  | 40:00 |
+| 69 | [Ask the Experts: CNCF CTO and TOC Members Open Q&A - Hosted by Chris Aniszczyk, Lin Sun & Kevin Wang](https://www.youtube.com/watch?v=JXooT7-VXnA) | concept |  | 32:24 |
+| 70 | [KubeCon + CloudNativeCon China 2025 • Highlights from Hong Kong](https://www.youtube.com/watch?v=4-nk0JhNYSg) | other |  | 0:59 |
