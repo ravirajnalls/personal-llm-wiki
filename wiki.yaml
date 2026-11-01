@@ -1,0 +1,54 @@
+# LLM Wiki configuration. Edit freely: every research run reads this file.
+
+title: My Wiki
+description: A personal research wiki. Every claim links back to its source.
+
+# Collections are top-level folders in wiki/. Each one has its own sources and page shape.
+# `wiki research "topic" -c <collection>` picks one; without -c the default is used.
+default_collection: general
+
+collections:
+  general:
+    description: Anything that doesn't fit elsewhere.
+    # Domains to prefer when searching. Empty means the whole web.
+    prefer_domains: []
+    # Domains never to cite.
+    avoid_domains: [pinterest.com, quora.com]
+    # Sections every page in this collection should have, in order.
+    sections:
+      - Summary
+      - Key ideas
+      - How it works
+      - Open questions
+      - Disagreements
+
+  tech:
+    description: Software, infrastructure and tools I use or evaluate.
+    prefer_domains: [github.com, kubernetes.io, cncf.io, docs.python.org, developer.mozilla.org]
+    # YouTube channels whose talks are good sources (matched against the video's channel name).
+    youtube_channels: [CNCF, Google Cloud Tech, GOTO Conferences, InfoQ]
+    avoid_domains: [medium.com]
+    sections:
+      - What it is
+      - How it works
+      - When to use it vs alternatives
+      - Real-world usage
+      - Gotchas
+      - Disagreements
+
+  papers:
+    description: Research papers and the talks explaining them.
+    prefer_domains: [arxiv.org, openreview.net, aclanthology.org, proceedings.neurips.cc]
+    sections:
+      - TL;DR
+      - Problem
+      - Method
+      - Results
+      - Limitations
+      - Related work
+
+# Research run settings
+research:
+  max_sources: 8          # sources to ingest per topic
+  prefer_recent_years: 3  # favor material from the last N years
+  timeout_minutes: 20
