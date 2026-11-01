@@ -69,7 +69,7 @@ def cmd_search(a):
 
 def cmd_sync(a):
     from llmwiki import pages, sync
-    st = sync.sync(a.playlist, list_only=a.list_only, retry=a.retry, max_fetch=a.max, delay=a.delay)
+    st = sync.sync(a.playlist, list_only=a.list_only, retry=a.retry, max_fetch=a.max, delay=a.delay, full=a.full)
     pages.rebuild_index()
     print(f"\n{st['playlists']} playlists, {st['videos']} videos listed; {st['fetched']} new transcripts, "
           f"{st['no_transcript']} without captions, {st['errors']} errors")
@@ -208,6 +208,7 @@ def main(argv=None):
     y.add_argument("--list-only", action="store_true", help="refresh playlists and videos, skip transcripts")
     y.add_argument("--max", type=int, default=0, help="fetch at most N transcripts this run")
     y.add_argument("--retry", action="store_true", help="retry videos that failed or had no transcript")
+    y.add_argument("--full", action="store_true", help="re-list every playlist, not just new or recent ones")
     y.add_argument("--delay", type=float, default=1.0, help="seconds between transcripts (default 1)")
     y.set_defaults(fn=cmd_sync)
 

@@ -118,8 +118,25 @@ def wanted_playlists(ch: dict, found: list[dict]) -> list[dict]:
     return keep
 
 
+def _needs_relist(pid: str, title: str, ch: dict, known: dict) -> bool:
+    """Old event playlists don't change: re-list a playlist only if it's new, from the last two years
+    (videos are still being added), or wasn't checked for `relist_days`."""
+    from datetime import datetime, timedelta
+    row = known.get(pid)
+    if not row or not row["synced_at"]:
+        return True
+    year, _ = timeline_date(title or row["title"] or "", ch["playlists"]["timeline"].get(pid))
+    if year is None or year >= datetime.now().year - 1:
+        return True
+    try:
+        last = datetime.strptime(row["synced_at"][:19], "%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return True
+    return datetime.now() - last > timedelta(days=int(ch.get("relist_days", 30)))
+
+
 def sync(playlist: str | None = None, list_only: bool = False, retry: bool = False, max_fetch: int = 0,
-         delay: float = 1.0, log=print) -> dict:
+         delay: float = 1.0, log=print, full: bool = False) -> dict:
     ch = channel_config()
     stats = {"playlists": 0, "videos": 0, "fetched": 0, "no_transcript": 0, "errors": 0, "failed_playlists": []}
 
@@ -130,6 +147,13 @@ def sync(playlist: str | None = None, list_only: bool = False, retry: bool = Fal
         found = list_playlists(ch["url"])
         targets = wanted_playlists(ch, found)
         log(f"  {len(found)} playlists, {len(targets)} kept by the wiki.yaml filters")
+        if not full:
+            known = {r["id"]: r for r in db.playlists()}
+            fresh = [p for p in targets if _needs_relist(p["id"], p["title"], ch, known)]
+            if len(fresh) < len(targets):
+                log(f"  {len(targets) - len(fresh)} older playlists already synced and unchanged; "
+                    f"checking {len(fresh)} new or recent ones (use --full to re-check all)")
+            targets = fresh
 
     for n, p in enumerate(targets, 1):
         try:

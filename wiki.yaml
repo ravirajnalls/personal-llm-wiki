@@ -57,6 +57,7 @@ channel:
   url: https://www.youtube.com/@cncf
   collection: tech              # wiki.yaml collection that pages built from it belong to
   languages: [en, en-US, en-GB] # caption languages to try, in order
+  relist_days: 30               # re-check older playlists for changes this often (new/recent ones: every run)
   playlists:
     # Keep only playlists whose title contains one of these words (empty = all playlists).
     include: [KubeCon, CloudNativeCon]
