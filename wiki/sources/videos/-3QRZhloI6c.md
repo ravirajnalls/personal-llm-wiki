@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon NA 2024 - Salt Lake City](../PLj6h78yzYM2Pw
 
 > Short highlight reel of attendee impressions from day 2 of KubeCon NA 2024.
 
+Categories: [Reliability & operations](../../categories/reliability-operations.md)
+
 Topics: `kubecon`, `community`, `conference highlights`
 
 ## Transcript

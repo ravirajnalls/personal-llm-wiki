@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon North America 2025](../PLj6h78yzYM2MLSW4tUD
 
 > Spotify explains how adopting a fleet-first mindset and its Fleetshift platform enabled fleet-wide changes at scale.
 
+Categories: [Platform engineering](../../categories/platform-engineering.md)
+
 Topics: `fleet management`, `fleetshift`, `software components`, `platform engineering`, `fleet-wide changes`
 
 ## Transcript

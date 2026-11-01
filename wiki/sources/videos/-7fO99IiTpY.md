@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon North America 2017 (Austin)](../PLj6h78yzYM
 
 > Practical guide for app developers on using Prometheus, with PromQL examples and remote read/write.
 
+Categories: [Observability](../../categories/observability.md)
+
 Topics: `prometheus`, `promql`, `remote write`, `remote read`, `monitoring`
 
 ## Transcript

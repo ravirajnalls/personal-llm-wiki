@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon India 2026](../PLj6h78yzYM2PmaTdAzefPqjawTl
 
 > Panel with Intuit, Atlassian and Cloudera practitioners on the shift from traditional monitoring to LLM-assisted 'observability 2.0'.
 
+Categories: [Observability](../../categories/observability.md), [AI & ML](../../categories/ai-ml.md), [Cost & efficiency](../../categories/cost-efficiency.md)
+
 Topics: `observability`, `generative ai`, `llm`, `monitoring`, `shift-left`, `aiops`
 
 ## Transcript

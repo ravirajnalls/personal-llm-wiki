@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon Europe 2025 - London](../PLj6h78yzYM2MP0QhY
 
 > Google explains why and how it invests in Kubernetes and open source in the AI era.
 
+Categories: [AI & ML](../../categories/ai-ml.md)
+
 Topics: `open source strategy`, `kubernetes`, `google`, `ai`, `community investment`
 
 ## Transcript

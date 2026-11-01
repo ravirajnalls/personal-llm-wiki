@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon Europe 2026](../PLj6h78yzYM2MXCOWSN9CqqID6O
 
 > Lightning talk introducing kcp, a horizontally scalable lightweight Kubernetes-style control plane that gives isolated API experiences without full clusters.
 
+Categories: [Autoscaling & performance](../../categories/autoscaling-performance.md), [Platform engineering](../../categories/platform-engineering.md)
+
 Topics: `kcp`, `multi-tenancy`, `control plane`, `crds`, `kubernetes api`, `workspaces`
 
 ## Transcript

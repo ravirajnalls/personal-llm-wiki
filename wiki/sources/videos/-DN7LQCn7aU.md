@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon NA 2023](../PLj6h78yzYM2MYc0X1465RzF_7Cqf7b
 
 > Four guest speakers describe how their organizations use Knative in production.
 
+Categories: [Autoscaling & performance](../../categories/autoscaling-performance.md), [AI & ML](../../categories/ai-ml.md), [Serverless & runtimes](../../categories/serverless-runtimes.md)
+
 Topics: `knative`, `serverless`, `autoscaling`, `eventing`, `production use`
 
 ## Transcript

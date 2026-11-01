@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon Europe 2024](../PLj6h78yzYM2N8nw1YcqqKveySH
 
 > DE-CIX describes using Kyverno policies to govern its Kubernetes environment, plus recent additions and the project roadmap.
 
+Categories: [Security](../../categories/security.md)
+
 Topics: `kyverno`, `policy as code`, `governance`, `admission control`, `kubernetes`
 
 ## Transcript

@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon Europe 2026](../PLj6h78yzYM2MXCOWSN9CqqID6O
 
 > SIG Scheduling update on the move from pod-level to workload-level scheduling and recent release changes.
 
+Categories: [Autoscaling & performance](../../categories/autoscaling-performance.md)
+
 Topics: `sig scheduling`, `workload scheduling`, `kueue`, `descheduler`, `kwok`, `gang scheduling`
 
 ## Transcript

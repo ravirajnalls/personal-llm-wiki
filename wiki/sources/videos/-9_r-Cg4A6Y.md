@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon NA 2024 - Salt Lake City](../PLj6h78yzYM2Pw
 
 > Presents a centralized VEX repository and automated aggregation to cut vulnerability scanning noise.
 
+Categories: [Security](../../categories/security.md)
+
 Topics: `vex`, `trivy`, `vulnerability scanning`, `sbom`, `vex hub`
 
 ## Transcript

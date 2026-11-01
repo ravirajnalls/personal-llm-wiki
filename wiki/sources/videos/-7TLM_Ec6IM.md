@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon NA 2023](../PLj6h78yzYM2MYc0X1465RzF_7Cqf7b
 
 > Overview of CNCF TAG Runtime activities and working groups and how to get involved.
 
+Categories: [AI & ML](../../categories/ai-ml.md), [Serverless & runtimes](../../categories/serverless-runtimes.md), [Edge & IoT](../../categories/edge-iot.md)
+
 Topics: `cncf tag runtime`, `wasm`, `container device interface`, `batch system`, `ai working group`, `iot`
 
 ## Transcript

@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon Europe 2017 (Berlin)](../PLj6h78yzYM2PAavlb
 
 > Comcast VIPER shares lessons and mistakes from scaling its engineering organization and microservices with Kubernetes.
 
+Categories: [Autoscaling & performance](../../categories/autoscaling-performance.md), [Cost & efficiency](../../categories/cost-efficiency.md)
+
 Topics: `organizational scaling`, `kubernetes`, `microservices`, `engineering efficiency`, `lessons learned`
 
 ## Transcript

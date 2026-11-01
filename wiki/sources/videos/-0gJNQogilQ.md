@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon Japan 2026](../PLH1zduub3WrE.md)
 
 > Speakers share patterns and lessons from scaling multi-cluster Kubernetes with Cluster API, arguing against starting with hundreds of clusters.
 
+Categories: [Autoscaling & performance](../../categories/autoscaling-performance.md), [CI/CD & GitOps](../../categories/ci-cd-gitops.md), [AI & ML](../../categories/ai-ml.md), [Reliability & operations](../../categories/reliability-operations.md)
+
 Topics: `cluster api`, `multi-cluster`, `fleet management`, `scaling`, `data sovereignty`, `gpu`
 
 ## Transcript

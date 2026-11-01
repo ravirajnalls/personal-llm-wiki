@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon Europe 2019 (Barcelona)](../PLj6h78yzYM2Ppm
 
 > SIG Auth deep dive on the Kubernetes authentication and authorization request flow and authenticator semantics.
 
+Categories: [Security](../../categories/security.md)
+
 Topics: `sig auth`, `authentication`, `authorization`, `rbac`, `request flow`, `audit`
 
 ## Transcript

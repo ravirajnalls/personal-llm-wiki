@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon North America 2025](../PLj6h78yzYM2MLSW4tUD
 
 > Explains why standard Kubernetes load balancing fails for stateful LLM inference and how llm-d's cache-aware routing fixes it, with benchmark data.
 
+Categories: [Networking](../../categories/networking.md), [Storage & data](../../categories/storage-data.md), [AI & ML](../../categories/ai-ml.md)
+
 Topics: `llm-d`, `kv cache`, `inference routing`, `stateful ai`, `load balancing`, `kubernetes`
 
 ## Transcript

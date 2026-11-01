@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon North America 2019 (San Diego)](../PLj6h78y
 
 > Live demo showing how CloudEvents and Knative Eventing interact.
 
+Categories: [Serverless & runtimes](../../categories/serverless-runtimes.md)
+
 Topics: `cloudevents`, `knative eventing`, `serverless`, `live demo`
 
 ## Transcript

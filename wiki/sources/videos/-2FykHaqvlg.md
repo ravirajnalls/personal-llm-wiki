@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon NA 2023](../PLj6h78yzYM2MYc0X1465RzF_7Cqf7b
 
 > Shows how Tetragon uses eBPF and kTLS to detect suspicious data patterns in encrypted traffic.
 
+Categories: [Observability](../../categories/observability.md), [Security](../../categories/security.md), [Networking](../../categories/networking.md)
+
 Topics: `tetragon`, `ebpf`, `ktls`, `encrypted traffic`, `l7 observability`, `runtime security`
 
 ## Transcript

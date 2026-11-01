@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon NA 2024 - Salt Lake City](../PLj6h78yzYM2Pw
 
 > John Howard shows how to test Kubernetes networking components without a real cluster for faster, easier-to-debug tests.
 
+Categories: [Networking](../../categories/networking.md)
+
 Topics: `istio`, `ztunnel`, `testing`, `networking`, `kubernetes-free testing`
 
 ## Transcript

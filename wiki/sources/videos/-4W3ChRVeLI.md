@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon North America 2021](../PLj6h78yzYM2Nd1U4RMh
 
 > Explores security threats that go beyond Kubernetes itself, starting from threat morphology.
 
+Categories: [Security](../../categories/security.md)
+
 Topics: `kubernetes security`, `threat modeling`, `threat morphology`, `attack surface`
 
 ## Transcript

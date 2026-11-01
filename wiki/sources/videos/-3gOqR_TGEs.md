@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon Europe 2019 (Barcelona)](../PLj6h78yzYM2Ppm
 
 > CNCF Serverless WG deep dive with a CloudEvents-based deployment pipeline demo and architectural considerations.
 
+Categories: [Serverless & runtimes](../../categories/serverless-runtimes.md)
+
 Topics: `cloudevents`, `serverless`, `deployment pipeline`, `eventing`, `cncf serverless wg`
 
 ## Transcript

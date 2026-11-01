@@ -14,6 +14,8 @@ Playlists: [KubeCon + CloudNativeCon Europe 2020 - Virtual](../PLj6h78yzYM2O1wls
 
 > Maintainers explain why mutual TLS is hard to adopt and how Istio API improvements make adoption simpler and safer.
 
+Categories: [Security](../../categories/security.md), [Networking](../../categories/networking.md)
+
 Topics: `mtls`, `istio`, `envoy`, `service mesh`, `authentication`
 
 ## Transcript
