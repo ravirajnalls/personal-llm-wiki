@@ -43,7 +43,7 @@ fewer than two sources.
 Needs Python 3.10+ and [Claude Code](https://claude.com/claude-code) (`claude` on your PATH, signed in).
 
 ```bash
-git clone https://github.com/ravirajnalls/llm-wiki && cd llm-wiki
+git clone https://github.com/ravirajnalls/personal-llm-wiki && cd personal-llm-wiki
 python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -e ".[mcp]"
 wiki research "your first topic"
