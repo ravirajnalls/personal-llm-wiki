@@ -46,7 +46,8 @@ def run(prompt: str, tools: list[str], timeout_min: int = 20, model: str | None 
     env = {**os.environ, "LLMWIKI_ROOT": str(ROOT),
            "PATH": str(Path(sys.executable).parent) + os.pathsep + os.environ.get("PATH", "")}
     try:
-        proc = subprocess.run(cmd, input=prompt, cwd=str(ROOT), env=env, capture_output=True, text=True, encoding="utf-8", timeout=timeout_min * 60)
+        no_window = {"creationflags": 0x08000000} if os.name == "nt" else {}  # no console flash from a scheduled run
+        proc = subprocess.run(cmd, input=prompt, cwd=str(ROOT), env=env, **no_window, capture_output=True, text=True, encoding="utf-8", timeout=timeout_min * 60)
     except subprocess.TimeoutExpired:
         return {"status": "failed", "reason": f"timed out after {timeout_min} minutes"}
     out = (proc.stdout or "").strip()

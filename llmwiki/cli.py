@@ -4,6 +4,8 @@
   wiki classify [--heuristic]          label videos: case study, concept, ...; orgs and topics
   wiki find "topic" [--kind K] [--page] every case study (or talk) on a topic, across playlists, by date
   wiki sources                         the playlists on the timeline, with counts
+  wiki auto                            sync + classify + rebuild + commit + push, unattended
+  wiki schedule [--time HH:MM]         run `wiki auto` daily (Task Scheduler / cron); --remove to stop
   wiki research "topic" [-c collection] [--url URL ...] [--file PATH ...] [--web | --no-search] [--push]
   wiki ask "question"                  answer from your wiki, with citations
   wiki ingest URL_OR_PATH ...          add a source to memory without writing a page
@@ -110,6 +112,16 @@ def cmd_sources(a):
     print(f"\nVideos: {sum(counts.values())} total, " + ", ".join(f"{v} {k}" for k, v in counts.items()))
 
 
+def cmd_auto(a):
+    from llmwiki import auto
+    sys.exit(auto.run())
+
+
+def cmd_schedule(a):
+    from llmwiki import auto
+    print(auto.remove() if a.remove else auto.install(a.time))
+
+
 def cmd_check(a):
     from llmwiki import pages, references, verify
     changed = references.update_all()
@@ -202,6 +214,14 @@ def main(argv=None):
     f.add_argument("--playlist", help="limit to one playlist id")
     f.add_argument("--page", action="store_true", help="write the result to wiki/topics/<topic>.md")
     f.set_defaults(fn=cmd_find)
+
+    u = sub.add_parser("auto", help="one unattended update: sync, classify, rebuild, commit, push")
+    u.set_defaults(fn=cmd_auto)
+
+    h = sub.add_parser("schedule", help="run `wiki auto` every day")
+    h.add_argument("--time", help="HH:MM, 24h (default: schedule.time in wiki.yaml, else 02:00)")
+    h.add_argument("--remove", action="store_true", help="remove the scheduled task")
+    h.set_defaults(fn=cmd_schedule)
 
     o = sub.add_parser("sources", help="playlists on the timeline, with counts")
     o.set_defaults(fn=cmd_sources)

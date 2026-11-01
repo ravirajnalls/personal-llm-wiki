@@ -70,6 +70,16 @@ channel:
   videos:
     exclude: [Keynote, Opening Remarks, Closing Remarks]
 
+# Unattended updates: `wiki schedule` installs a daily task that runs `wiki auto`
+# (sync new videos -> classify -> rebuild pages -> commit -> push). Or double-click update-wiki.cmd.
+schedule:
+  time: "02:00"            # daily, local time
+  max_transcripts: 300     # per run; the rest are fetched on the next runs
+  delay_seconds: 2         # between transcripts, to stay under YouTube's rate limit
+  classify: claude         # claude | heuristic | off
+  max_classify: 600        # videos labeled by Claude per run (30 per call)
+  push: true               # git push after committing
+
 # Research run settings
 research:
   max_sources: 8          # sources to ingest per topic

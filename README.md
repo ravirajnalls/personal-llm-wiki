@@ -73,6 +73,33 @@ summary and the timestamped moments where the topic comes up. `--page` saves it 
 - `wiki/sources/<playlist>.md`: each playlist's talks with their kind and organizations;
 - `wiki/sources/videos/<id>.md`: each video's labels and full transcript, every paragraph linked to its moment.
 
+## Hands-off: daily updates
+
+You don't need to run any of the commands above by hand. Once, after setup, double-click
+**`install-schedule.cmd`** (or run `wiki schedule`). Every day at `schedule.time` it runs `wiki auto`, which:
+
+1. pulls the repo, then syncs the channel: new playlists, new videos and up to `max_transcripts` new transcripts;
+2. classifies new videos with Claude (or the title rules if Claude Code isn't installed);
+3. rebuilds the timeline, case-study, playlist, video and index pages and every References list;
+4. commits `wiki/` and pushes (GitHub Pages republishes if you enabled it).
+
+To update right now, double-click **`update-wiki.cmd`** (`./update-wiki.sh` on macOS/Linux). Each run is
+logged to `logs/auto.log`; a lock file stops two runs overlapping. A big channel fills in over several nights
+because each run fetches a capped number of transcripts. `wiki schedule --remove` stops it.
+
+The task runs as you, on your computer, so it uses your signed-in Claude Code and git credentials and your home
+connection. That matters: YouTube blocks caption requests from most cloud servers, so the sync runs locally,
+not in GitHub Actions.
+
+```yaml
+schedule:
+  time: "02:00"
+  max_transcripts: 300
+  classify: claude        # claude | heuristic | off
+  max_classify: 600
+  push: true
+```
+
 ## How a research run works
 
 1. **Read memory.** The agent reads `wiki/index.md`, the existing page if there is one, and searches what it
@@ -137,6 +164,8 @@ collections:
 | `wiki classify [--heuristic] [--all] [--limit N]` | label videos: kind, organizations, topics, summary |
 | `wiki find TOPIC [--kind K] [--min-mentions N] [--page]` | every case study (or other kind) on a topic, by event |
 | `wiki sources` | the playlists on the timeline, with counts |
+| `wiki auto` | sync + classify + rebuild + commit + push, unattended (what the schedule runs) |
+| `wiki schedule [--time HH:MM] [--remove]` | install or remove the daily task (Task Scheduler / cron) |
 | `wiki research TOPIC... [-c COLL] [--url U] [--file F] [--web \| --no-search] [--notes N] [--push]` | research and write or update pages, then commit |
 | `wiki ask QUESTION` | answer from your wiki, keeping its citations |
 | `wiki ingest URL_OR_PATH...` | add sources to memory without writing a page |

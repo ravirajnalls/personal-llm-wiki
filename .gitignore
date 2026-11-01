@@ -6,3 +6,5 @@ __pycache__/
 site/
 memory.db
 memory.db-journal
+logs/
+.auto.lock
