@@ -31,6 +31,8 @@ def settings() -> dict:
     s.setdefault("classify", "claude")     # claude | heuristic | off
     s.setdefault("max_classify", 600)      # videos labeled by Claude per run (30 per call)
     s.setdefault("push", True)
+    s.setdefault("topic_pages", 25)        # case-study timeline pages for the N most covered topics
+    s.setdefault("topics", [])             # topics you always want a page for
     return s
 
 
@@ -90,6 +92,14 @@ def _run(log, s: dict) -> int:
             log("classify: Claude Code CLI not found, using title rules only")
     elif s["classify"] == "heuristic":
         labeled = classify.classify_heuristic(only_unclassified=True)
+
+    from llmwiki import find
+    written = find.write_topic_pages(s["topic_pages"]) if s["topic_pages"] else []
+    for t in s["topics"]:
+        groups = find.find(str(t))
+        if groups:
+            written.append(find.write_page(str(t), groups, ["case_study"]))
+    log(f"topic pages: {len(set(written))} written")
 
     catalog.build()
     references.update_all()

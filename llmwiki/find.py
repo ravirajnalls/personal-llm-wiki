@@ -138,3 +138,28 @@ def write_page(topic: str, groups: list[dict], kinds) -> str:
             lines.append("")
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return path.relative_to(WIKI_DIR).as_posix()
+
+
+GENERIC = {"kubernetes", "cloud native", "cncf", "open source", "containers", "devops", "lessons learned",
+           "microservices", "production", "community"}
+
+
+def top_topics(n: int = 25, min_case_studies: int = 3) -> list[tuple[str, int]]:
+    """The topics with the most case studies, from the classify labels."""
+    counts: dict[str, int] = {}
+    for v in db.videos("kind = 'case_study' AND topics IS NOT NULL"):
+        for t in {t.strip().lower() for t in json.loads(v["topics"] or "[]")}:
+            if t and t not in GENERIC:
+                counts[t] = counts.get(t, 0) + 1
+    ranked = sorted(((t, c) for t, c in counts.items() if c >= min_case_studies), key=lambda x: (-x[1], x[0]))
+    return ranked[:n]
+
+
+def write_topic_pages(n: int = 25, min_case_studies: int = 3) -> list[str]:
+    """A case-study timeline page for each of the top topics; refreshed on every run."""
+    written = []
+    for topic, _ in top_topics(n, min_case_studies):
+        groups = find(topic)
+        if groups:
+            written.append(write_page(topic, groups, ["case_study"]))
+    return written

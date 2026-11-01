@@ -79,6 +79,8 @@ schedule:
   classify: claude         # claude | heuristic | off
   max_classify: 600        # videos labeled by Claude per run (30 per call)
   push: true               # git push after committing
+  topic_pages: 25          # write a case-study timeline page for the 25 topics with the most case studies
+  topics: []               # plus a page for each topic listed here, e.g. [autoscaling, multi-tenancy, gpu]
 
 # Research run settings
 research:

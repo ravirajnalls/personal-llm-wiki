@@ -80,7 +80,8 @@ You don't need to run any of the commands above by hand. Once, after setup, doub
 
 1. pulls the repo, then syncs the channel: new playlists, new videos and up to `max_transcripts` new transcripts;
 2. classifies new videos with Claude (or the title rules if Claude Code isn't installed);
-3. rebuilds the timeline, case-study, playlist, video and index pages and every References list;
+3. writes a case-study timeline page in `wiki/topics/` for the `topic_pages` most covered topics (plus any you
+   list under `schedule.topics`), and rebuilds the timeline, case-study, playlist, video and index pages;
 4. commits `wiki/` and pushes (GitHub Pages republishes if you enabled it).
 
 To update right now, double-click **`update-wiki.cmd`** (`./update-wiki.sh` on macOS/Linux). Each run is
@@ -98,7 +99,12 @@ schedule:
   classify: claude        # claude | heuristic | off
   max_classify: 600
   push: true
+  topic_pages: 25         # pages for the 25 topics with the most case studies
+  topics: [autoscaling]   # plus these, always
 ```
+
+To publish with GitHub Pages, set *Settings → Pages → Source* to **GitHub Actions**. With "Deploy from a branch"
+GitHub also runs its own Jekyll build, which overwrites the MkDocs site.
 
 ## How a research run works
 
