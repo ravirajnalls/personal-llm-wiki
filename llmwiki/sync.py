@@ -1,214 +1,196 @@
-"""Sync the YouTube sources listed under `sources:` in wiki.yaml.
+"""Sync one YouTube channel: every playlist (a point on the timeline) and every video in it.
 
-For each playlist or channel: list every video, fetch the full transcript of each one that isn't in memory
-yet, store it chunked for full-text search, then write the source catalog pages under wiki/sources/.
-Re-running only fetches what's new (and, with --retry, what failed before).
+  wiki sync                      # list playlists + videos, fetch new transcripts, rebuild the catalog
+  wiki sync --list-only          # just refresh playlists and videos (fast), no transcripts
+  wiki sync --max 200            # fetch at most 200 transcripts this run (YouTube rate-limits big bursts)
+  wiki sync --playlist PLxxxx    # one playlist only
+  wiki sync --retry              # also retry videos that had no transcript or errored
 
-  wiki sync                     # every source
-  wiki sync kubecon-eu-2025     # one source by name
-  wiki sync --retry             # also retry videos that had no transcript or errored
+Configured under `channel:` in wiki.yaml. Re-running only fetches what's new.
 """
 
 import re
 import time
 
-from llmwiki import cite, config, db
-from llmwiki.config import WIKI_DIR
-from llmwiki.ingest import ingest_video, youtube_id
+from llmwiki import config, db
+from llmwiki.ingest import ingest_video
 
-TYPES = ("youtube_playlist", "youtube_channel", "youtube_video")
-SOURCES_DIR = WIKI_DIR / "sources"
+MONTHS = {m: i for i, m in enumerate(
+    ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], 1)}
 
 
-def configured_sources() -> list[dict]:
-    """The `sources:` list from wiki.yaml, validated, with defaults filled in."""
+def channel_config() -> dict:
     cfg = config.load()
-    out = []
-    for i, s in enumerate(cfg.get("sources") or [], 1):
-        if not isinstance(s, dict) or not s.get("url"):
-            raise SystemExit(f"wiki.yaml sources #{i}: needs at least a url")
-        s = dict(s)
-        s.setdefault("type", _guess_type(s["url"]))
-        if s["type"] not in TYPES:
-            raise SystemExit(f"wiki.yaml sources #{i}: type must be one of {', '.join(TYPES)}")
-        s.setdefault("name", config.slugify(s.get("title") or s["url"]))
-        s.setdefault("collection", cfg["default_collection"])
-        s.setdefault("languages", ["en", "en-US", "en-GB"])
-        s.setdefault("include", [])
-        s.setdefault("exclude", [])
-        s.setdefault("limit", 0)
-        out.append(s)
-    names = [s["name"] for s in out]
-    if len(names) != len(set(names)):
-        raise SystemExit("wiki.yaml sources: every source needs a unique name")
-    return out
+    ch = cfg.get("channel")
+    if not ch or not ch.get("url"):
+        raise SystemExit("No channel in wiki.yaml. Add:\n  channel:\n    url: https://www.youtube.com/@handle")
+    ch = dict(ch)
+    ch.setdefault("collection", cfg["default_collection"])
+    ch.setdefault("languages", ["en", "en-US", "en-GB"])
+    pl = dict(ch.get("playlists") or {})
+    for k in ("include", "exclude", "only"):
+        pl[k] = [str(x) for x in pl.get(k) or []]
+    pl["timeline"] = {str(k): str(v) for k, v in (pl.get("timeline") or {}).items()}
+    ch["playlists"] = pl
+    vids = dict(ch.get("videos") or {})
+    vids["exclude"] = [str(x) for x in vids.get("exclude") or []]
+    ch["videos"] = vids
+    return ch
 
 
-def _guess_type(url: str) -> str:
-    if "list=" in url:
-        return "youtube_playlist"
-    if youtube_id(url):
-        return "youtube_video"
-    return "youtube_channel"
-
-
-def list_videos(url: str) -> tuple[str, list[dict]]:
-    """Title and videos of a playlist or channel, without downloading anything (uses yt-dlp)."""
+def _ydl():
     import yt_dlp
-    class _Quiet:  # errors are raised and reported by sync; don't also print yt-dlp's own
+
+    class _Quiet:  # sync reports errors itself
         def debug(self, msg): pass
         def info(self, msg): pass
         def warning(self, msg): pass
         def error(self, msg): pass
-    opts = {"extract_flat": "in_playlist", "quiet": True, "no_warnings": True, "skip_download": True,
-            "logger": _Quiet()}
-    if not "list=" in url and re.search(r"youtube\.com/(@|c/|channel/|user/)", url) and not re.search(
-            r"/(videos|streams|playlists)/?$", url):
-        url = url.rstrip("/") + "/videos"  # a channel's uploads tab
-    with yt_dlp.YoutubeDL(opts) as ydl:
+
+    return yt_dlp.YoutubeDL({"extract_flat": "in_playlist", "quiet": True, "no_warnings": True,
+                             "skip_download": True, "logger": _Quiet()})
+
+
+def playlist_id(text: str) -> str:
+    m = re.search(r"list=([\w-]+)", text)
+    return m.group(1) if m else text.strip()
+
+
+def list_playlists(channel_url: str) -> list[dict]:
+    """[{id, title}] for every public playlist on the channel."""
+    url = re.sub(r"/(videos|streams|shorts|featured|playlists)/?$", "", channel_url.rstrip("/")) + "/playlists"
+    with _ydl() as ydl:
         info = ydl.extract_info(url, download=False)
-    entries = []
+    out = []
     for e in info.get("entries") or []:
-        if not e or not e.get("id") or len(e["id"]) != 11:
-            continue
-        title = e.get("title") or ""
-        if title in ("[Private video]", "[Deleted video]"):
+        pid = (e or {}).get("id") or playlist_id((e or {}).get("url", ""))
+        if pid and pid.startswith(("PL", "OL", "UU", "FL")):
+            out.append({"id": pid, "title": e.get("title") or pid})
+    return out
+
+
+def list_playlist_videos(pid: str) -> tuple[str, list[dict]]:
+    with _ydl() as ydl:
+        info = ydl.extract_info(f"https://www.youtube.com/playlist?list={pid}", download=False)
+    vids = []
+    for e in info.get("entries") or []:
+        if not e or len(e.get("id") or "") != 11 or e.get("title") in ("[Private video]", "[Deleted video]"):
             continue
         d = e.get("upload_date") or ""
-        entries.append({
-            "id": e["id"],
-            "title": title,
-            "channel": e.get("channel") or e.get("uploader") or info.get("channel") or info.get("uploader") or "",
-            "duration": int(e["duration"]) if e.get("duration") else None,
-            "published": f"{d[:4]}-{d[4:6]}-{d[6:]}" if len(d) == 8 else "",
-        })
-    return info.get("title") or "", entries
+        vids.append({"id": e["id"], "title": e.get("title") or "",
+                     "channel": e.get("channel") or e.get("uploader") or info.get("channel") or "",
+                     "duration": int(e["duration"]) if e.get("duration") else None,
+                     "published": f"{d[:4]}-{d[4:6]}-{d[6:]}" if len(d) == 8 else ""})
+    return info.get("title") or pid, vids
 
 
-def _wanted(title: str, src: dict) -> bool:
+def timeline_date(title: str, override: str | None = None) -> tuple[int | None, int | None]:
+    """(year, month) for a playlist: wiki.yaml override 'YYYY' or 'YYYY-MM', else read from the title."""
+    if override:
+        m = re.match(r"(\d{4})(?:-(\d{1,2}))?", override)
+        if m:
+            return int(m.group(1)), int(m.group(2)) if m.group(2) else None
+    years = re.findall(r"(?<!\d)(20\d{2}|19\d{2})(?!\d)", title)
+    year = int(years[-1]) if years else None
+    month = None
+    for word in re.findall(r"[A-Za-z]{3,}", title.lower()):
+        if word[:3] in MONTHS and (len(word) == 3 or word in (
+                "january", "february", "march", "april", "june", "july", "august", "september", "october",
+                "november", "december", "sept")):
+            month = MONTHS[word[:3]]
+            break
+    return year, month
+
+
+def _match(title: str, words: list[str]) -> bool:
     low = title.lower()
-    if src["include"] and not any(k.lower() in low for k in src["include"]):
-        return False
-    return not any(k.lower() in low for k in src["exclude"])
+    return any(w.lower() in low for w in words)
 
 
-def sync_source(src: dict, retry: bool = False, delay: float = 1.0, log=print) -> dict:
-    name = src["name"]
-    if "REPLACE_WITH" in src["url"]:
-        raise ValueError("placeholder url: put your playlist URL in wiki.yaml")
-    if src["type"] == "youtube_video":
-        vid = youtube_id(src["url"])
-        title, videos = src.get("title", ""), [{"id": vid, "title": src.get("title", ""), "channel": "",
-                                                "duration": None, "published": ""}]
+def wanted_playlists(ch: dict, found: list[dict]) -> list[dict]:
+    pl = ch["playlists"]
+    if pl["only"]:
+        only = {playlist_id(x) for x in pl["only"]}
+        known = {p["id"]: p for p in found}
+        return [known.get(pid, {"id": pid, "title": pid}) for pid in only]
+    keep = [p for p in found if (not pl["include"] or _match(p["title"], pl["include"]))
+            and not _match(p["title"], pl["exclude"])]
+    return keep
+
+
+def sync(playlist: str | None = None, list_only: bool = False, retry: bool = False, max_fetch: int = 0,
+         delay: float = 1.0, log=print) -> dict:
+    ch = channel_config()
+    stats = {"playlists": 0, "videos": 0, "fetched": 0, "no_transcript": 0, "errors": 0, "failed_playlists": []}
+
+    if playlist:
+        targets = [{"id": playlist_id(playlist), "title": ""}]
     else:
-        title, videos = list_videos(src["url"])
-    db.upsert_feed(name, src["type"], src["url"], src.get("title") or title, src["collection"])
-    kept = [v for v in videos if _wanted(v["title"], src)]
-    if src["limit"]:
-        kept = kept[: src["limit"]]
-    for pos, v in enumerate(kept, 1):
-        db.upsert_item(name, v["id"], pos, v["title"], v["channel"], v["duration"], v["published"])
-    log(f"{name}: {len(videos)} videos listed, {len(kept)} kept")
+        log(f"Listing playlists on {ch['url']} …")
+        found = list_playlists(ch["url"])
+        targets = wanted_playlists(ch, found)
+        log(f"  {len(found)} playlists, {len(targets)} kept by the wiki.yaml filters")
 
-    status = {r["video_id"]: r["status"] for r in db.feed_items(name)}
-    todo = [v for v in kept if status.get(v["id"]) in ("pending", None)
-            or (retry and status.get(v["id"]) in ("error", "no_transcript"))]
-    counts = {"ok": 0, "no_transcript": 0, "error": 0, "already": len(kept) - len(todo)}
+    for n, p in enumerate(targets, 1):
+        try:
+            title, vids = list_playlist_videos(p["id"])
+        except Exception as e:
+            stats["failed_playlists"].append(f"{p['id']}: {type(e).__name__}: {e}"[:200])
+            log(f"  [{n}/{len(targets)}] FAILED {p['title'] or p['id']}")
+            continue
+        vids = [v for v in vids if not _match(v["title"], ch["videos"]["exclude"])]
+        year, month = timeline_date(title, ch["playlists"]["timeline"].get(p["id"]))
+        db.upsert_playlist(p["id"], title, year, month, len(vids))
+        for v in vids:
+            db.upsert_video(v["id"], v["title"], v["channel"], v["duration"], v["published"])
+        db.set_playlist_videos(p["id"], [v["id"] for v in vids])
+        stats["playlists"] += 1
+        stats["videos"] += len(vids)
+        log(f"  [{n}/{len(targets)}] {year or '????'}  {len(vids):>4} videos  {title[:70]}")
+
+    if not list_only:
+        fetch_transcripts(ch, playlist_id(playlist) if playlist else None, retry, max_fetch, delay, stats, log)
+
+    from llmwiki import classify
+    classify.classify_heuristic(only_unclassified=True)
+    from llmwiki import catalog
+    catalog.build()
+    return stats
+
+
+def fetch_transcripts(ch: dict, pid: str | None, retry: bool, max_fetch: int, delay: float, stats: dict, log):
+    states = "('pending', 'error', 'no_transcript')" if retry else "('pending')"
+    where = f"status IN {states}"
+    args: tuple = ()
+    if pid:
+        where += " AND id IN (SELECT video_id FROM playlist_videos WHERE playlist_id = ?)"
+        args = (pid,)
+    todo = db.videos(where, args)
+    if max_fetch:
+        todo = todo[:max_fetch]
+    log(f"Fetching {len(todo)} transcript(s) …")
     for n, v in enumerate(todo, 1):
-        if db.has_source(v["id"]):  # already ingested through another source or `wiki ingest`
-            db.set_item_status(name, v["id"], "ok")
-            counts["already"] += 1
+        if db.has_source(v["id"]):
+            db.set_video_status(v["id"], "ok")
             continue
         r = ingest_video(v["id"], meta={"title": v["title"], "author": v["channel"], "published": v["published"]},
-                         languages=src["languages"])
+                         languages=ch["languages"])
         if r.get("error"):
-            kind = "no_transcript" if re.search(r"TranscriptsDisabled|NoTranscriptFound|VideoUnavailable",
-                                                r["error"]) else "error"
-            db.set_item_status(name, v["id"], kind, r["error"])
-            counts[kind] += 1
-            log(f"  [{n}/{len(todo)}] {kind:<13} {v['title'][:70]}")
+            if re.search(r"TranscriptsDisabled|NoTranscriptFound|VideoUnavailable", r["error"]):
+                db.set_video_status(v["id"], "no_transcript", r["error"])
+                stats["no_transcript"] += 1
+                log(f"  [{n}/{len(todo)}] no captions: {v['title'][:70]}")
+            else:
+                db.set_video_status(v["id"], "error", r["error"])
+                stats["errors"] += 1
+                if re.search(r"IpBlocked|RequestBlocked|TooManyRequests|429", r["error"]):
+                    log("  YouTube is rate-limiting caption requests. Stopping; run `wiki sync` again later "
+                        "(or with a larger --delay) to continue where it left off.")
+                    break
+                log(f"  [{n}/{len(todo)}] error: {v['title'][:70]}")
         else:
-            db.set_item_status(name, v["id"], "ok")
-            counts["ok"] += 1
-            log(f"  [{n}/{len(todo)}] ok {r.get('chunks', 0):>4} chunks  {v['title'][:70]}")
+            db.set_video_status(v["id"], "ok")
+            stats["fetched"] += 1
+            log(f"  [{n}/{len(todo)}] ok  {v['title'][:70]}")
         if delay and n < len(todo):
-            time.sleep(delay)  # be gentle; YouTube rate-limits caption requests
-    return counts
-
-
-def sync(names: list[str] | None = None, retry: bool = False, delay: float = 1.0, log=print) -> dict:
-    sources = configured_sources()
-    if names:
-        unknown = set(names) - {s["name"] for s in sources}
-        if unknown:
-            raise SystemExit(f"No source named {', '.join(sorted(unknown))} in wiki.yaml")
-        sources = [s for s in sources if s["name"] in names]
-    if not sources:
-        raise SystemExit("No sources in wiki.yaml. Add a `sources:` list (see README).")
-    results = {}
-    for s in sources:
-        try:
-            results[s["name"]] = sync_source(s, retry, delay, log)
-        except Exception as e:  # one broken playlist shouldn't stop the rest
-            results[s["name"]] = {"failed": f"{type(e).__name__}: {e}".removeprefix("DownloadError: ERROR: ")[:300]}
-    build_catalog()
-    return results
-
-
-# ---------- catalog pages: wiki/sources/ ----------
-
-def _dur(seconds) -> str:
-    return cite.mmss(seconds) if seconds else ""
-
-
-def build_catalog(transcript_pages: bool | None = None) -> list[str]:
-    """wiki/sources/index.md, one index per source, and (optionally) one transcript page per video."""
-    cfg = config.load()
-    if transcript_pages is None:
-        transcript_pages = cfg.get("research", {}).get("transcript_pages", True)
-    if not config.DB_PATH.exists():
-        return []
-    SOURCES_DIR.mkdir(parents=True, exist_ok=True)
-    written = []
-    top = ["# Sources", "", "Everything the wiki is built from, synced from `sources:` in wiki.yaml.", "",
-           "| Source | Collection | Videos | Transcripts | Synced |", "| --- | --- | --- | --- | --- |"]
-    for f in db.feeds():
-        items = db.feed_items(f["name"])
-        top.append(f"| [{f['title'] or f['name']}]({f['name']}/index.md) | {f['collection']} | {f['n_videos']} | "
-                   f"{f['n_ok'] or 0} | {(f['synced_at'] or '')[:10]} |")
-        folder = SOURCES_DIR / f["name"]
-        folder.mkdir(exist_ok=True)
-        lines = [f"# {f['title'] or f['name']}", "", f"[{f['url']}]({f['url']}) · collection: {f['collection']} · "
-                 f"{f['n_ok'] or 0} of {f['n_videos']} transcripts", "",
-                 "| # | Video | Channel | Published | Length | Transcript |", "| --- | --- | --- | --- | --- | --- |"]
-        for it in items:
-            t = (it["title"] or it["video_id"]).replace("|", "/")
-            link = f"[{t}]({it['video_id']}.md)" if transcript_pages and it["status"] == "ok" else \
-                f"[{t}](https://www.youtube.com/watch?v={it['video_id']})"
-            state = {"ok": "yes", "no_transcript": "none available", "error": "error", "pending": "not yet"}.get(
-                it["status"], it["status"])
-            lines.append(f"| {it['position']} | {link} | {(it['channel'] or '').replace('|', '/')} | "
-                         f"{it['published'] or ''} | {_dur(it['duration'])} | {state} |")
-            if transcript_pages and it["status"] == "ok":
-                _write_transcript_page(folder, it)
-        (folder / "index.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-        written.append(f"sources/{f['name']}/index.md")
-    (SOURCES_DIR / "index.md").write_text("\n".join(top) + "\n", encoding="utf-8")
-    written.append("sources/index.md")
-    return written
-
-
-def _write_transcript_page(folder, it):
-    path = folder / f"{it['video_id']}.md"
-    chunks = db.source_chunks(it["video_id"])
-    if not chunks:
-        return
-    title = (it["title"] or it["video_id"]).replace('"', "'")
-    out = ["---", f'title: "{title}"', f"video: {it['video_id']}", f"channel: \"{(it['channel'] or '').replace(chr(34), '')}\"",
-           f"published: \"{it['published'] or ''}\"", "---", "", f"# {it['title'] or it['video_id']}", "",
-           f"{it['channel'] or ''} · {it['published'] or ''} · {_dur(it['duration'])} · "
-           f"[Watch on YouTube](https://www.youtube.com/watch?v={it['video_id']})", "", "## Transcript", ""]
-    out += [f"{cite.video(it['video_id'], int(c['loc']))} {c['text']}\n" for c in chunks]
-    text = "\n".join(out)
-    if not path.exists() or path.read_text(encoding="utf-8") != text:
-        path.write_text(text, encoding="utf-8")
+            time.sleep(delay)

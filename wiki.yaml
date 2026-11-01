@@ -47,34 +47,37 @@ collections:
       - Limitations
       - Related work
 
-# Sources: the YouTube playlists (or channels, or single videos) the wiki is built from.
-# `wiki sync` lists every video in each one, fetches its full transcript into memory, and writes a
-# catalog under wiki/sources/. Re-running it only fetches new videos.
+# The YouTube channel the wiki is built from. Each playlist on it is one point on the timeline (an event,
+# a season, a year); each video is a talk: a technical concept, a case study, a tutorial, ...
 #
-#   name:       short id, used in `wiki sync NAME` and `wiki search --feed NAME`
-#   url:        playlist URL (…/playlist?list=…), channel URL (…/@handle), or a video URL
-#   type:       youtube_playlist | youtube_channel | youtube_video (guessed from the url if left out)
-#   collection: which wiki.yaml collection pages built from it belong to
-#   include:    keep only videos whose title contains one of these words (optional)
-#   exclude:    drop videos whose title contains one of these words (optional)
-#   limit:      keep only the first N videos (optional, 0 = all)
-#   languages:  caption languages to try, in order (default: en)
-#
-# Replace the example below with your own playlists.
-sources:
-  - name: example-playlist
-    url: https://www.youtube.com/playlist?list=REPLACE_WITH_PLAYLIST_ID
-    collection: tech
-    exclude: [Keynote, Closing Remarks]
+#   wiki sync        lists every playlist and video, fetches full transcripts, builds the indexes
+#   wiki classify    labels each video (case study / concept / ...) with its organizations and topics
+#   wiki find TOPIC  every case study on TOPIC across all playlists, oldest first
+channel:
+  url: https://www.youtube.com/@cncf
+  collection: tech              # wiki.yaml collection that pages built from it belong to
+  languages: [en, en-US, en-GB] # caption languages to try, in order
+  playlists:
+    # Keep only playlists whose title contains one of these words (empty = all playlists).
+    include: [KubeCon, CloudNativeCon]
+    # Drop playlists whose title contains one of these words.
+    exclude: [Shorts, Livestream, Webinar]
+    # Or list exactly which playlists to use (ids or URLs); this overrides include/exclude.
+    only: []
+    # The timeline date is read from each playlist's title ("... Europe 2024" -> 2024). Fix or add one here:
+    timeline: {}
+    #   PLj6h78yzYM2xxxxxxxxxxxxxxxxxxxx: 2024-03
+  videos:
+    exclude: [Keynote, Opening Remarks, Closing Remarks]
 
 # Research run settings
 research:
   max_sources: 8          # sources to ingest per topic
   prefer_recent_years: 3  # favor material from the last N years
   timeout_minutes: 20
-  # false: pages are built only from synced sources and memory (the default when `sources:` is set).
+  # false: pages are built only from the synced channel and memory (the default when `channel:` is set).
   # true: the agent may also use web search. Override per run with --web / --no-search.
   web_search: false
-  # Write a browsable transcript page per video under wiki/sources/ (set false if you publish the site
+  # Write a browsable transcript page per video under wiki/sources/videos/ (set false if you publish the site
   # publicly and don't want to republish full transcripts).
   transcript_pages: true

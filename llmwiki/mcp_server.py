@@ -52,6 +52,23 @@ def search_sources(query: str, limit: int = 8) -> list[dict]:
              "citation": cite.for_chunk(r)} for r in db.search(query, limit)]
 
 
+@mcp.tool()
+def find_talks(topic: str, kind: str = "case_study") -> list[dict]:
+    """Every talk on a topic across all the channel's playlists, grouped by event in timeline order.
+
+    kind: case_study (default: organizations reporting their own use), concept, tutorial, panel, keynote,
+    other, or all. Each video comes with its organizations, summary and the moments that discuss the topic.
+    """
+    from llmwiki import find
+    return find.find(topic, None if kind == "all" else kind.split(","))
+
+
+@mcp.tool()
+def timeline() -> list[dict]:
+    """The channel's playlists (events) in timeline order, with video, transcript and case-study counts."""
+    return [dict(p) for p in db.playlists()]
+
+
 def main():
     mcp.run()
 

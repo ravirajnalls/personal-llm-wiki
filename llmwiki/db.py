@@ -23,25 +23,33 @@ CREATE VIRTUAL TABLE IF NOT EXISTS chunks USING fts5(
     loc UNINDEXED,                -- seconds (video), page (pdf), chunk number (web/text)
     text
 );
-CREATE TABLE IF NOT EXISTS feeds (
-    name TEXT PRIMARY KEY,        -- the source's name in wiki.yaml
-    type TEXT,
-    url TEXT,
+CREATE TABLE IF NOT EXISTS playlists (
+    id TEXT PRIMARY KEY,          -- YouTube playlist id
     title TEXT,
-    collection TEXT,
+    year INTEGER,                 -- timeline position, from the title (or wiki.yaml overrides)
+    month INTEGER,
+    n_listed INTEGER,
     synced_at TEXT
 );
-CREATE TABLE IF NOT EXISTS feed_items (
-    feed TEXT,
+CREATE TABLE IF NOT EXISTS playlist_videos (
+    playlist_id TEXT,
     video_id TEXT,
     position INTEGER,
+    PRIMARY KEY (playlist_id, video_id)
+);
+CREATE TABLE IF NOT EXISTS videos (
+    id TEXT PRIMARY KEY,
     title TEXT,
     channel TEXT,
     duration INTEGER,
     published TEXT,
-    status TEXT DEFAULT 'pending', -- pending | ok | no_transcript | error | skipped
+    status TEXT DEFAULT 'pending', -- pending | ok | no_transcript | error
     error TEXT,
-    PRIMARY KEY (feed, video_id)
+    kind TEXT,                     -- case_study | concept | tutorial | panel | keynote | other
+    orgs TEXT,                     -- JSON list: organizations whose own experience the talk reports
+    topics TEXT,                   -- JSON list: technologies and concepts
+    summary TEXT,
+    classified_by TEXT             -- claude | heuristic
 );
 CREATE TABLE IF NOT EXISTS runs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -103,7 +111,7 @@ def fts_query(text: str) -> str:
     return " ".join(f'"{w}"' for w in words) or '""'
 
 
-def search(query: str, limit: int = 10, source_id: str | None = None, feed: str | None = None):
+def search(query: str, limit: int = 10, source_id: str | None = None, playlist: str | None = None):
     sql = """SELECT c.source_id, c.loc, snippet(chunks, 2, '[', ']', ' … ', 40) AS snippet, c.text,
                     s.kind, s.url, s.title FROM chunks c JOIN sources s ON s.id = c.source_id
              WHERE chunks MATCH ?"""
@@ -111,9 +119,9 @@ def search(query: str, limit: int = 10, source_id: str | None = None, feed: str 
     if source_id:
         sql += " AND c.source_id = ?"
         args.append(source_id)
-    if feed:
-        sql += " AND c.source_id IN (SELECT video_id FROM feed_items WHERE feed = ?)"
-        args.append(feed)
+    if playlist:
+        sql += " AND c.source_id IN (SELECT video_id FROM playlist_videos WHERE playlist_id = ?)"
+        args.append(playlist)
     sql += " ORDER BY rank LIMIT ?"
     args.append(limit)
     with get_db() as conn:
@@ -143,42 +151,75 @@ def recent_runs(limit: int = 20):
         return conn.execute("SELECT * FROM runs ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
 
 
-def upsert_feed(name: str, type_: str, url: str, title: str, collection: str):
+def upsert_playlist(pid: str, title: str, year: int | None, month: int | None, n_listed: int):
     with get_db() as conn:
         conn.execute(
-            """INSERT INTO feeds (name, type, url, title, collection, synced_at) VALUES (?, ?, ?, ?, ?, datetime('now'))
-               ON CONFLICT(name) DO UPDATE SET type=excluded.type, url=excluded.url, title=excluded.title,
-               collection=excluded.collection, synced_at=excluded.synced_at""",
-            (name, type_, url, title, collection))
+            """INSERT INTO playlists (id, title, year, month, n_listed, synced_at)
+               VALUES (?, ?, ?, ?, ?, datetime('now'))
+               ON CONFLICT(id) DO UPDATE SET title=excluded.title, year=excluded.year, month=excluded.month,
+               n_listed=excluded.n_listed, synced_at=excluded.synced_at""",
+            (pid, title, year, month, n_listed))
 
 
-def upsert_item(feed: str, video_id: str, position: int, title: str, channel: str, duration: int | None,
-                published: str):
+def set_playlist_videos(pid: str, video_ids: list[str]):
+    with get_db() as conn:
+        conn.execute("DELETE FROM playlist_videos WHERE playlist_id = ?", (pid,))
+        conn.executemany("INSERT OR IGNORE INTO playlist_videos (playlist_id, video_id, position) VALUES (?, ?, ?)",
+                         [(pid, v, n) for n, v in enumerate(video_ids, 1)])
+
+
+def upsert_video(vid: str, title: str, channel: str, duration: int | None, published: str):
     with get_db() as conn:
         conn.execute(
-            """INSERT INTO feed_items (feed, video_id, position, title, channel, duration, published)
-               VALUES (?, ?, ?, ?, ?, ?, ?)
-               ON CONFLICT(feed, video_id) DO UPDATE SET position=excluded.position,
-               title=coalesce(nullif(excluded.title, ''), feed_items.title),
-               channel=coalesce(nullif(excluded.channel, ''), feed_items.channel),
-               duration=coalesce(excluded.duration, feed_items.duration),
-               published=coalesce(nullif(excluded.published, ''), feed_items.published)""",
-            (feed, video_id, position, title, channel, duration, published))
+            """INSERT INTO videos (id, title, channel, duration, published) VALUES (?, ?, ?, ?, ?)
+               ON CONFLICT(id) DO UPDATE SET
+               title=coalesce(nullif(excluded.title, ''), videos.title),
+               channel=coalesce(nullif(excluded.channel, ''), videos.channel),
+               duration=coalesce(excluded.duration, videos.duration),
+               published=coalesce(nullif(excluded.published, ''), videos.published)""",
+            (vid, title, channel, duration, published))
 
 
-def set_item_status(feed: str, video_id: str, status: str, error: str = ""):
+def set_video_status(vid: str, status: str, error: str = ""):
     with get_db() as conn:
-        conn.execute("UPDATE feed_items SET status = ?, error = ? WHERE feed = ? AND video_id = ?",
-                     (status, error[:300], feed, video_id))
+        conn.execute("UPDATE videos SET status = ?, error = ? WHERE id = ?", (status, error[:300], vid))
 
 
-def feed_items(feed: str):
+def set_video_class(vid: str, kind: str, orgs: list[str], topics: list[str], summary: str, by: str):
+    import json
     with get_db() as conn:
-        return conn.execute("SELECT * FROM feed_items WHERE feed = ? ORDER BY position", (feed,)).fetchall()
+        conn.execute("UPDATE videos SET kind = ?, orgs = ?, topics = ?, summary = ?, classified_by = ? WHERE id = ?",
+                     (kind, json.dumps(orgs), json.dumps(topics), summary, by, vid))
 
 
-def feeds():
+def videos(where: str = "1", args: tuple = ()):
+    with get_db() as conn:
+        return conn.execute(f"SELECT * FROM videos WHERE {where} ORDER BY id", args).fetchall()
+
+
+TIMELINE_ORDER = "coalesce(p.year, 9999), coalesce(p.month, 0), p.title"
+
+
+def playlists():
+    """Every playlist in timeline order, with counts."""
     with get_db() as conn:
         return conn.execute(
-            """SELECT f.*, count(i.video_id) AS n_videos, sum(i.status = 'ok') AS n_ok
-               FROM feeds f LEFT JOIN feed_items i ON i.feed = f.name GROUP BY f.name ORDER BY f.name""").fetchall()
+            f"""SELECT p.*, count(pv.video_id) AS n_videos, sum(v.status = 'ok') AS n_ok,
+                       sum(v.kind = 'case_study') AS n_case_studies
+                FROM playlists p LEFT JOIN playlist_videos pv ON pv.playlist_id = p.id
+                LEFT JOIN videos v ON v.id = pv.video_id
+                GROUP BY p.id ORDER BY {TIMELINE_ORDER}""").fetchall()
+
+
+def playlist_items(pid: str):
+    with get_db() as conn:
+        return conn.execute(
+            """SELECT v.*, pv.position FROM playlist_videos pv JOIN videos v ON v.id = pv.video_id
+               WHERE pv.playlist_id = ? ORDER BY pv.position""", (pid,)).fetchall()
+
+
+def video_playlists(vid: str):
+    with get_db() as conn:
+        return conn.execute(
+            f"""SELECT p.* FROM playlist_videos pv JOIN playlists p ON p.id = pv.playlist_id
+                WHERE pv.video_id = ? ORDER BY {TIMELINE_ORDER}""", (vid,)).fetchall()

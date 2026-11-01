@@ -1,7 +1,9 @@
 """wiki: research topics into a cited personal wiki.
 
-  wiki sync [NAME ...] [--retry]       fetch every transcript from the playlists in wiki.yaml
-  wiki sources                         sync status of each source
+  wiki sync [--list-only] [--max N]    list every playlist on the channel, fetch new transcripts
+  wiki classify [--heuristic]          label videos: case study, concept, ...; orgs and topics
+  wiki find "topic" [--kind K] [--page] every case study (or talk) on a topic, across playlists, by date
+  wiki sources                         the playlists on the timeline, with counts
   wiki research "topic" [-c collection] [--url URL ...] [--file PATH ...] [--web | --no-search] [--push]
   wiki ask "question"                  answer from your wiki, with citations
   wiki ingest URL_OR_PATH ...          add a source to memory without writing a page
@@ -52,7 +54,7 @@ def cmd_ingest(a):
 
 def cmd_search(a):
     from llmwiki import cite, db
-    rows = db.search(" ".join(a.query), a.limit, a.source, a.feed)
+    rows = db.search(" ".join(a.query), a.limit, a.source, a.playlist)
     if not rows:
         print("No matches. Try fewer or different words, or ingest more sources.")
     for r in rows:
@@ -64,26 +66,48 @@ def cmd_search(a):
 
 def cmd_sync(a):
     from llmwiki import pages, sync
-    results = sync.sync(a.names or None, retry=a.retry, delay=a.delay)
+    st = sync.sync(a.playlist, list_only=a.list_only, retry=a.retry, max_fetch=a.max, delay=a.delay)
     pages.rebuild_index()
-    for name, c in results.items():
-        if "failed" in c:
-            print(f"{name}: FAILED {c['failed']}")
-        else:
-            print(f"{name}: {c['ok']} new, {c['already']} already in memory, "
-                  f"{c['no_transcript']} without transcript, {c['error']} errors")
+    print(f"\n{st['playlists']} playlists, {st['videos']} videos listed; {st['fetched']} new transcripts, "
+          f"{st['no_transcript']} without captions, {st['errors']} errors")
+    for f in st["failed_playlists"]:
+        print(f"  failed playlist {f}")
+    print("Next: `wiki classify` labels case studies with Claude (titles-only labels are already in place).")
+
+
+def cmd_classify(a):
+    from llmwiki import catalog, classify, pages
+    if a.heuristic:
+        n = classify.classify_heuristic(only_unclassified=not a.all)
+        print(f"Labeled {n} videos from their titles.")
+    else:
+        r = classify.classify_claude(relabel_all=a.all, limit=a.limit, model=a.model)
+        print(f"Labeled {r['labeled']} of {r['total']} videos with Claude ({r['failed']} not labeled).")
+    catalog.build()
+    pages.rebuild_index()
+
+
+def cmd_find(a):
+    from llmwiki import find, pages
+    kinds = None if a.kind == "all" else a.kind.split(",")
+    groups = find.find(" ".join(a.topic), kinds, a.min_mentions, a.playlist)
+    find.print_results(" ".join(a.topic), groups, kinds)
+    if a.page and groups:
+        path = find.write_page(" ".join(a.topic), groups, kinds)
+        pages.rebuild_index()
+        print(f"Wrote wiki/{path}")
 
 
 def cmd_sources(a):
-    from llmwiki import db, sync
-    srcs = sync.configured_sources()
-    known = {f["name"]: f for f in db.feeds()} if config.DB_PATH.exists() else {}
-    for s in srcs:
-        f = known.get(s["name"])
-        state = f"{f['n_ok'] or 0}/{f['n_videos']} transcripts, synced {f['synced_at']}" if f else "never synced"
-        print(f"{s['name']:<28} {s['type']:<17} {s['collection']:<10} {state}")
-    if not srcs:
-        print("No sources in wiki.yaml yet.")
+    from llmwiki import db, find
+    if not config.DB_PATH.exists() or not db.playlists():
+        print("Nothing synced yet. Set `channel:` in wiki.yaml, then run `wiki sync`.")
+        return
+    for p in db.playlists():
+        print(f"{find.when(p):<8} {p['n_videos']:>4} videos {p['n_ok'] or 0:>4} transcripts "
+              f"{p['n_case_studies'] or 0:>3} case studies  {p['title'][:70]}")
+    counts = {r["status"]: r["n"] for r in db.get_db().execute("SELECT status, count(*) n FROM videos GROUP BY status")}
+    print(f"\nVideos: {sum(counts.values())} total, " + ", ".join(f"{v} {k}" for k, v in counts.items()))
 
 
 def cmd_check(a):
@@ -155,13 +179,31 @@ def main(argv=None):
     r.add_argument("--model")
     r.set_defaults(fn=cmd_research)
 
-    y = sub.add_parser("sync", help="fetch transcripts for the sources in wiki.yaml")
-    y.add_argument("names", nargs="*", help="source names (default: all)")
+    y = sub.add_parser("sync", help="sync the channel's playlists, videos and transcripts")
+    y.add_argument("--playlist", help="one playlist id or URL only")
+    y.add_argument("--list-only", action="store_true", help="refresh playlists and videos, skip transcripts")
+    y.add_argument("--max", type=int, default=0, help="fetch at most N transcripts this run")
     y.add_argument("--retry", action="store_true", help="retry videos that failed or had no transcript")
-    y.add_argument("--delay", type=float, default=1.0, help="seconds between videos (default 1)")
+    y.add_argument("--delay", type=float, default=1.0, help="seconds between transcripts (default 1)")
     y.set_defaults(fn=cmd_sync)
 
-    o = sub.add_parser("sources", help="sync status of each source")
+    k = sub.add_parser("classify", help="label videos as case study / concept / ..., with orgs and topics")
+    k.add_argument("--heuristic", action="store_true", help="free, title-only rules instead of Claude")
+    k.add_argument("--all", action="store_true", help="relabel every video")
+    k.add_argument("--limit", type=int, default=0, help="label at most N videos")
+    k.add_argument("--model")
+    k.set_defaults(fn=cmd_classify)
+
+    f = sub.add_parser("find", help="every case study on a topic across playlists, on the timeline")
+    f.add_argument("topic", nargs="+")
+    f.add_argument("--kind", default="case_study",
+                   help="case_study (default), concept, tutorial, panel, keynote, other, a comma list, or all")
+    f.add_argument("--min-mentions", type=int, default=2, help="transcript mentions needed (default 2)")
+    f.add_argument("--playlist", help="limit to one playlist id")
+    f.add_argument("--page", action="store_true", help="write the result to wiki/topics/<topic>.md")
+    f.set_defaults(fn=cmd_find)
+
+    o = sub.add_parser("sources", help="playlists on the timeline, with counts")
     o.set_defaults(fn=cmd_sources)
 
     q = sub.add_parser("ask", help="answer a question from the wiki")
@@ -177,7 +219,7 @@ def main(argv=None):
     s = sub.add_parser("search", help="full-text search ingested sources")
     s.add_argument("query", nargs="+")
     s.add_argument("--source", help="limit to one source id (video id, URL or files/name)")
-    s.add_argument("--feed", help="limit to the videos of one synced source (its name in wiki.yaml)")
+    s.add_argument("--playlist", help="limit to the videos of one playlist (its id)")
     s.add_argument("--limit", type=int, default=8)
     s.set_defaults(fn=cmd_search)
 

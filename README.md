@@ -3,50 +3,83 @@
 A personal research wiki on any topic, written by Claude Code, where every claim links back to the exact
 spot in its source: the second of a video, the passage of a web page, the page of a PDF.
 
+Built around one YouTube channel. Each playlist on the channel is a point on the timeline (an event, a
+season, a year) and each video in it is a talk: a technical concept, a case study, a tutorial. Search a
+topic and you get every case study on it across all the playlists, oldest first, with the exact moments.
+
 ```bash
-wiki sync                                   # pull every transcript from the playlists in wiki.yaml
-wiki research "Cilium network policy" -c tech
-wiki research "Sourdough hydration" --url https://www.youtube.com/watch?v=... --notes "I bake at high altitude"
-wiki research "Attention is all you need" -c papers --file ~/Downloads/1706.03762.pdf
-wiki ask "Which CNI should I use for a small home lab?"
+wiki sync                         # every playlist + video on the channel, full transcripts, indexes
+wiki classify                     # label each video: case study / concept / ..., its orgs and topics
+wiki find "autoscaling"           # every autoscaling case study, by event, with timestamped moments
+wiki find "autoscaling" --page    # ... and save it as wiki/topics/autoscaling.md
+wiki research "Autoscaling on Kubernetes" -c tech    # Claude writes a cited page from those talks
+wiki ask "Who moved from HPA to KEDA, and why?"
 ```
 
-It runs on your machine, whenever you want. You choose the sources: list the YouTube playlists you trust in
-`wiki.yaml`, and pages are built only from those (turn on Claude Code's built-in web search per run with `--web`).
-No API keys and no payment step; everything else is plain Python and SQLite.
+It runs on your machine, whenever you want. Pages are built only from the channel you configure (turn on
+Claude Code's built-in web search per run with `--web`). No API keys and no payment step; everything else is
+plain Python and SQLite.
 
-## Sources: YouTube playlists in `wiki.yaml`
+## The channel: `wiki.yaml`
 
 ```yaml
-sources:
-  - name: kubecon-eu-2025
-    url: https://www.youtube.com/playlist?list=PL...
-    collection: tech
-    exclude: [Keynote, Closing Remarks]   # drop videos whose title has these words
-  - name: lex-fridman-ai
-    url: https://www.youtube.com/@lexfridman
-    type: youtube_channel
-    include: [AI, GPT, robot]             # keep only videos whose title has one of these
-    collection: general
+channel:
+  url: https://www.youtube.com/@cncf
+  collection: tech
+  playlists:
+    include: [KubeCon, CloudNativeCon]     # keep playlists whose title has one of these (empty = all)
+    exclude: [Shorts, Livestream]
+    only: []                               # or list exact playlist ids/URLs
+    timeline:                              # dates come from titles ("... Europe 2024"); fix any here
+      PLj6h78yzYM2xxxxxxxxxxxxxxxxxxxx: 2024-03
+  videos:
+    exclude: [Keynote, Opening Remarks]
 ```
 
-`wiki sync` lists every video in each source (with yt-dlp, no API key), fetches each one's **full transcript**
-into `memory.db`, and builds the indexes:
+### 1. `wiki sync`: playlists, videos, transcripts
 
-- a full-text search index over every transcript, in ~45-second timestamped chunks (`wiki search`, `--feed NAME`
-  to stay inside one playlist);
-- `wiki/sources/index.md`, one catalog page per playlist (title, channel, date, length, transcript status), and
-  one page per video with its whole transcript, every paragraph linked to its moment on YouTube.
+Lists every playlist on the channel and every video in each (with yt-dlp, no API key), dates each playlist
+from its title, and fetches each video's **full transcript** into `memory.db`. A video in several playlists is
+stored once. Sync is incremental: only new videos are fetched on the next run. YouTube rate-limits caption
+requests, so for a big channel use `wiki sync --max 300` and run it again later; it continues where it left
+off and stops by itself if YouTube starts refusing. `--list-only` refreshes playlists without transcripts,
+`--retry` retries failures, and `wiki sources` shows the timeline with counts.
 
-Sync is incremental: run it again and only new videos are fetched. Videos without captions are marked and
-skipped; `wiki sync --retry` tries them and any errors again. `wiki sources` shows the status of each one.
+### 2. `wiki classify`: what each video is
+
+Claude reads each title, its event and the start of its transcript (30 videos per call) and labels it:
+
+- **kind:** `case_study` (an organization reports its own use: adoption, migration, scaling, incidents,
+  lessons learned), `concept`, `tutorial`, `panel`, `keynote` or `other`;
+- **orgs:** for case studies, whose experience it is (the end user, not the vendor);
+- **topics** and a one-sentence **summary**.
+
+Sync already applies free title-only rules (`"How Spotify Scaled…"`, `"…at Zalando"`, `"lessons learned"`,
+`"in production"`, `"our journey"`), so `wiki find` works before you classify; `wiki classify` makes it accurate.
+`wiki classify --heuristic` reruns just the rules.
+
+### 3. `wiki find "topic"`: case studies across the timeline
+
+Finds every video whose title, labels or transcript covers the topic, keeps the case studies (or
+`--kind concept`, `--kind all`, ...), and groups them by playlist in timeline order with the organizations,
+summary and the timestamped moments where the topic comes up. `--page` saves it as a wiki page.
+
+### Indexes it builds
+
+- full-text search over every transcript in ~45-second timestamped chunks (`wiki search`, `--playlist ID`);
+- `wiki/sources/index.md`: the channel's timeline, every playlist by year with video, transcript and
+  case-study counts;
+- `wiki/sources/case-studies.md`: every case study by event, with its organizations;
+- `wiki/sources/<playlist>.md`: each playlist's talks with their kind and organizations;
+- `wiki/sources/videos/<id>.md`: each video's labels and full transcript, every paragraph linked to its moment.
 
 ## How a research run works
 
 1. **Read memory.** The agent reads `wiki/index.md`, the existing page if there is one, and searches what it
    has already ingested, so a topic grows instead of being rewritten.
-2. **Discover.** By default, from your synced sources only: the agent searches every transcript from several
-   angles and reads the transcript pages around each hit. With `--web` (or `research.web_search: true`), Claude
+2. **Discover.** By default, from the synced channel only: the agent runs `wiki find` for the topic and its
+   synonyms, then `wiki search` for exact passages, and writes a Timeline section showing how the topic
+   evolved across events. With `--web` (or `research.web_search: true`), Claude
    Code's WebSearch also finds sources, guided by the collection's preferred domains. Your own `--url`/`--file`
    sources always come first.
 3. **Ingest.** `wiki ingest` stores each source's text in `memory.db` (SQLite full-text search): YouTube
@@ -100,12 +133,14 @@ collections:
 
 | Command | Does |
 | --- | --- |
-| `wiki sync [NAME...] [--retry] [--delay S]` | fetch full transcripts for the sources in wiki.yaml and rebuild the source catalog |
-| `wiki sources` | each source's sync status |
+| `wiki sync [--list-only] [--max N] [--playlist ID] [--retry] [--delay S]` | sync the channel's playlists, videos and full transcripts; rebuild the catalog |
+| `wiki classify [--heuristic] [--all] [--limit N]` | label videos: kind, organizations, topics, summary |
+| `wiki find TOPIC [--kind K] [--min-mentions N] [--page]` | every case study (or other kind) on a topic, by event |
+| `wiki sources` | the playlists on the timeline, with counts |
 | `wiki research TOPIC... [-c COLL] [--url U] [--file F] [--web \| --no-search] [--notes N] [--push]` | research and write or update pages, then commit |
 | `wiki ask QUESTION` | answer from your wiki, keeping its citations |
 | `wiki ingest URL_OR_PATH...` | add sources to memory without writing a page |
-| `wiki search WORDS [--source ID] [--feed NAME]` | find passages in ingested sources, with citations |
+| `wiki search WORDS [--source ID] [--playlist ID]` | find passages in ingested sources, with citations |
 | `wiki check [--fix]` | rebuild References and indexes, verify citations |
 | `wiki list` | pages, sources and recent runs |
 | `wiki serve` | preview the site |
@@ -117,8 +152,8 @@ collections:
 claude mcp add llm-wiki -- wiki-mcp
 ```
 
-Tools: `list_pages`, `get_page`, `search_wiki` and `search_sources` (raw transcript and page text with
-citations). Set `LLMWIKI_ROOT` if the server starts outside your wiki folder.
+Tools: `find_talks` (case studies on a topic across the timeline), `timeline`, `list_pages`, `get_page`,
+`search_wiki` and `search_sources` (raw transcript text with citations). Set `LLMWIKI_ROOT` if the server starts outside your wiki folder.
 
 ## Private or public
 

@@ -99,6 +99,7 @@ def check_page(path: Path, fix: bool = False) -> tuple[list[str], list[str]]:
     if len(distinct) < 2:
         warnings.append(f"{name}: cites {len(distinct)} source(s)")
 
+    warnings = list(dict.fromkeys(warnings))
     if fix and fixes:
         for old, new in fixes:
             text = text.replace(old, new, 1)

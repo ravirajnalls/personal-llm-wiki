@@ -38,8 +38,8 @@ def run(prompt: str, tools: list[str], timeout_min: int = 20, model: str | None 
     exe = shutil.which("claude")
     if not exe:
         return {"status": "failed", "reason": "Claude Code CLI not found. Install it: https://claude.com/claude-code"}
-    allowed = os.environ.get("LLMWIKI_ALLOWED_TOOLS", "").split() or tools
-    cmd = [exe, "-p", "--allowedTools", *allowed]
+    allowed = tools if not tools else (os.environ.get("LLMWIKI_ALLOWED_TOOLS", "").split() or tools)
+    cmd = [exe, "-p"] + (["--allowedTools", *allowed] if allowed else [])
     if model or os.environ.get("LLMWIKI_MODEL"):
         cmd += ["--model", model or os.environ["LLMWIKI_MODEL"]]
     # Make sure the agent's `wiki` commands use this same install (e.g. an un-activated venv)

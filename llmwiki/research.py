@@ -33,9 +33,6 @@ def build_prompt(topic: str, coll_name: str, coll: dict, slug: str, urls: list[s
     sections = "\n".join(f"     ## {s}" for s in coll.get("sections") or ["Summary", "Key ideas"])
     given = "\n".join(f"     - {u}" for u in urls + files) or "     (none)"
 
-    feeds = [f["name"] for f in (db.feeds() if config.DB_PATH.exists() else []) if f["collection"] == coll_name]
-    feed_hint = (f"   Synced sources for this collection: {', '.join(feeds)} (catalog: wiki/sources/index.md).\n"
-                 f"   Narrow a search to one with: wiki search \"KEYWORDS\" --feed NAME\n") if feeds else ""
     discover = (f"""2. DISCOVER. Use WebSearch to find up to {max_sources} strong sources on the topic, mixing kinds:
    primary docs or papers, in-depth articles, and recorded talks or interviews on YouTube.
    - Prefer these domains: {prefer}. Never cite: {avoid}.
@@ -45,9 +42,14 @@ def build_prompt(topic: str, coll_name: str, coll: dict, slug: str, urls: list[s
    - The user's own sources below come first and must be used."""
                 if web_search else
                 f"""2. DISCOVER. Web search is OFF: build the page ONLY from the synced sources in memory and the user's sources below.
-   Search memory from several angles (synonyms, product names, people) to find every relevant video:
-     wiki search "KEYWORDS" --limit 20
-{feed_hint}   Read the transcript pages in wiki/sources/<source>/<video id>.md for context around a hit.
+   Start with the timeline of every talk on the topic, across all playlists (events), oldest first:
+     wiki find "TOPIC" --kind all
+     wiki find "TOPIC"                      (case studies only: organizations reporting their own use)
+   Run it for synonyms and related project names too. Then find exact passages:
+     wiki search "KEYWORDS" --limit 20      (add --playlist ID to stay inside one event)
+   Read wiki/sources/videos/<video id>.md for the full transcript around a hit.
+   Add a "## Timeline" section (after the first section) showing how the topic evolved across events: what
+   changed from year to year, and which organizations reported what. Cover every relevant case study `wiki find` lists, not just the first few.
    Use up to {max_sources * 2} videos if they add something; drop ones that only repeat others.""")
 
     return f"""You are the research agent for a personal wiki ("{cfg['title']}"). Working directory: {ROOT}
@@ -125,7 +127,7 @@ def research(topic: str, collection: str | None = None, urls: list[str] | None =
     coll_name, coll = config.collection(collection)
     if web_search is None:
         rc = config.load().get("research", {})
-        web_search = rc.get("web_search", not config.load().get("sources"))
+        web_search = rc.get("web_search", not config.load().get("channel"))
     slug = slug or config.slugify(topic)
     (WIKI_DIR / coll_name).mkdir(parents=True, exist_ok=True)
     prompt = build_prompt(topic, coll_name, coll, slug, urls or [], files or [], web_search, notes)
