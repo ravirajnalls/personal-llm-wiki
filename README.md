@@ -41,7 +41,7 @@ channel:
 Lists every playlist on the channel and every video in each (with yt-dlp, no API key), dates each playlist
 from its title, and fetches each video's **full transcript** into `memory.db`. A video in several playlists is
 stored once. Sync is incremental: only new videos are fetched on the next run. YouTube rate-limits caption
-requests, so for a big channel use `wiki sync --max 300` and run it again later; it continues where it left
+requests, so for a big channel the nightly run fetches 150 transcripts about 8 seconds apart, newest events first, and stops politely if YouTube still pushes back; the next run continues where it left
 off and stops by itself if YouTube starts refusing. `--list-only` refreshes playlists without transcripts,
 `--retry` retries failures, and `wiki sources` shows the timeline with counts.
 
@@ -113,7 +113,7 @@ not in GitHub Actions.
 ```yaml
 schedule:
   time: "02:00"
-  max_transcripts: 300
+  max_transcripts: 150
   classify: claude        # claude | heuristic | off
   max_classify: 600
   push: true

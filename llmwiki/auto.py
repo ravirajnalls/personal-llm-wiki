@@ -26,8 +26,8 @@ LOCK = ROOT / ".auto.lock"
 def settings() -> dict:
     s = dict(config.load().get("schedule") or {})
     s.setdefault("time", "02:00")
-    s.setdefault("max_transcripts", 300)   # per run; YouTube rate-limits big bursts
-    s.setdefault("delay_seconds", 2)
+    s.setdefault("max_transcripts", 150)   # per run; YouTube rate-limits big bursts
+    s.setdefault("delay_seconds", 8)
     s.setdefault("classify", "claude")     # claude | heuristic | off
     s.setdefault("max_classify", 600)      # videos labeled by Claude per run (30 per call)
     s.setdefault("push", True)
@@ -80,7 +80,8 @@ def _run(log, s: dict) -> int:
 
     st = sync.sync(max_fetch=s["max_transcripts"], delay=s["delay_seconds"], log=log)
     log(f"sync: {st['playlists']} playlists, {st['videos']} videos, {st['fetched']} new transcripts, "
-        f"{st['no_transcript']} without captions, {st['errors']} errors")
+        f"{st['no_transcript']} without captions, {st['errors']} errors, {st.get('waiting', 0)} still waiting"
+        + (" (stopped early: rate-limited)" if st.get("rate_limited") else ""))
 
     labeled = 0
     if s["classify"] == "claude":

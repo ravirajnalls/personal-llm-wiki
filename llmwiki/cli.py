@@ -72,7 +72,7 @@ def cmd_sync(a):
     st = sync.sync(a.playlist, list_only=a.list_only, retry=a.retry, max_fetch=a.max, delay=a.delay, full=a.full)
     pages.rebuild_index()
     print(f"\n{st['playlists']} playlists, {st['videos']} videos listed; {st['fetched']} new transcripts, "
-          f"{st['no_transcript']} without captions, {st['errors']} errors")
+          f"{st['no_transcript']} without captions, {st['errors']} errors, {st.get('waiting', 0)} still waiting")
     for f in st["failed_playlists"]:
         print(f"  failed playlist {f}")
     print("Next: `wiki classify` labels case studies with Claude (titles-only labels are already in place).")
@@ -209,7 +209,7 @@ def main(argv=None):
     y.add_argument("--max", type=int, default=0, help="fetch at most N transcripts this run")
     y.add_argument("--retry", action="store_true", help="retry videos that failed or had no transcript")
     y.add_argument("--full", action="store_true", help="re-list every playlist, not just new or recent ones")
-    y.add_argument("--delay", type=float, default=1.0, help="seconds between transcripts (default 1)")
+    y.add_argument("--delay", type=float, default=8.0, help="seconds between transcripts (default 8)")
     y.set_defaults(fn=cmd_sync)
 
     k = sub.add_parser("classify", help="label videos as case study / concept / ..., with orgs and topics")

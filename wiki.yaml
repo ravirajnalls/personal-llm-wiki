@@ -108,8 +108,8 @@ categories:
 # (sync new videos -> classify -> rebuild pages -> commit -> push). Or double-click update-wiki.cmd.
 schedule:
   time: "02:00"            # daily, local time
-  max_transcripts: 300     # per run; the rest are fetched on the next runs
-  delay_seconds: 2         # between transcripts, to stay under YouTube's rate limit
+  max_transcripts: 150     # per run, newest events first; the rest are fetched on the next runs
+  delay_seconds: 8         # between transcripts (randomized ±), to stay under YouTube's rate limit
   classify: claude         # claude | heuristic | off
   max_classify: 600        # videos labeled by Claude per run (30 per call)
   push: true               # git push after committing

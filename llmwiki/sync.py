@@ -182,17 +182,34 @@ def sync(playlist: str | None = None, list_only: bool = False, retry: bool = Fal
     return stats
 
 
+RATE_LIMIT = re.compile(r"IpBlocked|RequestBlocked|TooManyRequests|Too Many Requests|429")
+
+
 def fetch_transcripts(ch: dict, pid: str | None, retry: bool, max_fetch: int, delay: float, stats: dict, log):
+    import random
+    with db.get_db() as conn:  # videos that only failed because of rate limiting go back in the queue
+        conn.execute("UPDATE videos SET status = 'pending', error = '' WHERE status = 'error' AND "
+                     "(error LIKE '%IpBlocked%' OR error LIKE '%RequestBlocked%' OR error LIKE '%TooManyRequests%' "
+                     "OR error LIKE '%Too Many Requests%' OR error LIKE '%429%')")
     states = "('pending', 'error', 'no_transcript')" if retry else "('pending')"
     where = f"status IN {states}"
     args: tuple = ()
     if pid:
         where += " AND id IN (SELECT video_id FROM playlist_videos WHERE playlist_id = ?)"
         args = (pid,)
-    todo = db.videos(where, args)
+    # Newest events first, so the most current talks fill in first
+    with db.get_db() as conn:
+        todo = conn.execute(
+            f"""SELECT v.*, max(coalesce(p.year, 0) * 100 + coalesce(p.month, 0)) AS newest FROM videos v
+                LEFT JOIN playlist_videos pv ON pv.video_id = v.id LEFT JOIN playlists p ON p.id = pv.playlist_id
+                WHERE {where.replace('status', 'v.status').replace(' id IN', ' v.id IN')}
+                GROUP BY v.id ORDER BY newest DESC, v.id""", args).fetchall()
+    waiting = len(todo)
     if max_fetch:
         todo = todo[:max_fetch]
-    log(f"Fetching {len(todo)} transcript(s) …")
+    log(f"Fetching {len(todo)} of {waiting} waiting transcript(s), newest events first, "
+        f"~{delay:g}s apart …")
+    stats["rate_limited"] = False
     for n, v in enumerate(todo, 1):
         if db.has_source(v["id"]):
             db.set_video_status(v["id"], "ok")
@@ -200,6 +217,13 @@ def fetch_transcripts(ch: dict, pid: str | None, retry: bool, max_fetch: int, de
         r = ingest_video(v["id"], meta={"title": v["title"], "author": v["channel"], "published": v["published"]},
                          languages=ch["languages"])
         if r.get("error"):
+            if RATE_LIMIT.search(r["error"]):
+                # Not the video's fault: leave it pending for the next run and stop asking for now
+                stats["rate_limited"] = True
+                log(f"  YouTube is rate-limiting caption requests after {stats['fetched']} this run. Stopping; "
+                    f"the next run continues where this one left off. If this keeps happening early, raise "
+                    f"schedule.delay_seconds or lower schedule.max_transcripts in wiki.yaml.")
+                break
             if re.search(r"TranscriptsDisabled|NoTranscriptFound|VideoUnavailable", r["error"]):
                 db.set_video_status(v["id"], "no_transcript", r["error"])
                 stats["no_transcript"] += 1
@@ -207,14 +231,11 @@ def fetch_transcripts(ch: dict, pid: str | None, retry: bool, max_fetch: int, de
             else:
                 db.set_video_status(v["id"], "error", r["error"])
                 stats["errors"] += 1
-                if re.search(r"IpBlocked|RequestBlocked|TooManyRequests|429", r["error"]):
-                    log("  YouTube is rate-limiting caption requests. Stopping; run `wiki sync` again later "
-                        "(or with a larger --delay) to continue where it left off.")
-                    break
                 log(f"  [{n}/{len(todo)}] error: {v['title'][:70]}")
         else:
             db.set_video_status(v["id"], "ok")
             stats["fetched"] += 1
             log(f"  [{n}/{len(todo)}] ok  {v['title'][:70]}")
         if delay and n < len(todo):
-            time.sleep(delay)
+            time.sleep(delay * random.uniform(0.7, 1.5))  # jitter: an even beat looks more like a bot
+    stats["waiting"] = waiting - stats["fetched"] - stats["no_transcript"] - stats["errors"]
